@@ -2,17 +2,82 @@
 
 import { neon } from "@neondatabase/serverless"
 
-// Initialize the SQL client with error handling
+// ============================================
+// CONFIGURATION & SETUP
+// ============================================
+
+// Cache configuration
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+const dataCache = new Map<string, { data: any; timestamp: number }>()
+
+// Initialize the SQL client with error handling and connection pooling
 let sql: any = null
 
 try {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL environment variable is not configured")
   }
-  sql = neon(process.env.DATABASE_URL)
+  sql = neon(process.env.DATABASE_URL, {
+    fetchOptions: {
+      cache: "no-store", // Disable caching for dynamic data
+    },
+  })
 } catch (error) {
   console.error("Failed to initialize database connection:", error)
 }
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Retry logic for database operations
+ */
+async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn()
+    } catch (error) {
+      console.error(`Attempt ${i + 1} failed:`, error)
+      if (i === retries - 1) throw error
+      await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, i)))
+    }
+  }
+  throw new Error("Max retries reached")
+}
+
+/**
+ * Get data from cache or fetch if expired
+ */
+function getCachedData<T>(key: string): T | null {
+  const cached = dataCache.get(key)
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    console.log(`Cache hit for: ${key}`)
+    return cached.data as T
+  }
+  return null
+}
+
+/**
+ * Set data in cache
+ */
+function setCachedData(key: string, data: any): void {
+  dataCache.set(key, { data, timestamp: Date.now() })
+  console.log(`Cache set for: ${key}`)
+}
+
+/**
+ * Clear all cached data
+ */
+export async function clearCache() {
+  dataCache.clear()
+  console.log("Cache cleared")
+  return { success: true, message: "Cache cleared successfully" }
+}
+
+// ============================================
+// BASIC DATA FETCHING FUNCTIONS
+// ============================================
 
 export async function getAccounts() {
   try {
@@ -20,13 +85,21 @@ export async function getAccounts() {
       throw new Error("Database connection not initialized")
     }
 
+    // Check cache first
+    const cacheKey = "accounts"
+    const cached = getCachedData(cacheKey)
+    if (cached) return cached
+
     console.log("Fetching accounts from database...")
-    const accounts = await sql`SELECT * FROM accounts ORDER BY "ACCOUNT NAME"`
+    const accounts = await fetchWithRetry(() => sql`SELECT * FROM accounts ORDER BY "ACCOUNT NAME"`)
     console.log(`Successfully fetched ${accounts.length} accounts`)
+
+    // Cache the result
+    setCachedData(cacheKey, accounts)
+
     return accounts
   } catch (error) {
     console.error("Error fetching accounts:", error)
-    // Return empty array instead of throwing to prevent app crash
     return []
   }
 }
@@ -37,9 +110,18 @@ export async function getCenters() {
       throw new Error("Database connection not initialized")
     }
 
+    // Check cache first
+    const cacheKey = "centers"
+    const cached = getCachedData(cacheKey)
+    if (cached) return cached
+
     console.log("Fetching centers from database...")
-    const centers = await sql`SELECT * FROM centers ORDER BY "CENTER NAME"`
+    const centers = await fetchWithRetry(() => sql`SELECT * FROM centers ORDER BY "CENTER NAME"`)
     console.log(`Successfully fetched ${centers.length} centers`)
+
+    // Cache the result
+    setCachedData(cacheKey, centers)
+
     return centers
   } catch (error) {
     console.error("Error fetching centers:", error)
@@ -53,9 +135,18 @@ export async function getFunctions() {
       throw new Error("Database connection not initialized")
     }
 
+    // Check cache first
+    const cacheKey = "functions"
+    const cached = getCachedData(cacheKey)
+    if (cached) return cached
+
     console.log("Fetching functions from database...")
-    const functions = await sql`SELECT * FROM functions ORDER BY "CN UNIQUE KEY"`
+    const functions = await fetchWithRetry(() => sql`SELECT * FROM functions ORDER BY "CN UNIQUE KEY"`)
     console.log(`Successfully fetched ${functions.length} functions`)
+
+    // Cache the result
+    setCachedData(cacheKey, functions)
+
     return functions
   } catch (error) {
     console.error("Error fetching functions:", error)
@@ -69,9 +160,18 @@ export async function getServices() {
       throw new Error("Database connection not initialized")
     }
 
+    // Check cache first
+    const cacheKey = "services"
+    const cached = getCachedData(cacheKey)
+    if (cached) return cached
+
     console.log("Fetching services from database...")
-    const services = await sql`SELECT * FROM services ORDER BY "CENTER NAME"`
+    const services = await fetchWithRetry(() => sql`SELECT * FROM services ORDER BY "CENTER NAME"`)
     console.log(`Successfully fetched ${services.length} services`)
+
+    // Cache the result
+    setCachedData(cacheKey, services)
+
     return services
   } catch (error) {
     console.error("Error fetching services:", error)
@@ -79,7 +179,10 @@ export async function getServices() {
   }
 }
 
-// Saved Filters Functions
+// ============================================
+// SAVED FILTERS FUNCTIONS
+// ============================================
+
 export async function saveFilterSet(name: string, filters: any) {
   try {
     if (!sql) {
@@ -87,12 +190,18 @@ export async function saveFilterSet(name: string, filters: any) {
     }
 
     console.log("Saving filter set:", name)
-    const result = await sql`
-      INSERT INTO saved_filters (name, filters)
-      VALUES (${name}, ${JSON.stringify(filters)})
-      RETURNING id, name, created_at
-    `
+    const result = await fetchWithRetry(
+      () => sql`
+        INSERT INTO saved_filters (name, filters)
+        VALUES (${name}, ${JSON.stringify(filters)})
+        RETURNING id, name, created_at
+      `
+    )
     console.log("Successfully saved filter set:", result[0])
+
+    // Invalidate saved filters cache
+    dataCache.delete("saved_filters")
+
     return { success: true, data: result[0] }
   } catch (error) {
     console.error("Error saving filter set:", error)
@@ -106,13 +215,24 @@ export async function getSavedFilters() {
       throw new Error("Database connection not initialized")
     }
 
+    // Check cache first
+    const cacheKey = "saved_filters"
+    const cached = getCachedData(cacheKey)
+    if (cached) return cached
+
     console.log("Fetching saved filters...")
-    const savedFilters = await sql`
-      SELECT id, name, filters, created_at, updated_at 
-      FROM saved_filters 
-      ORDER BY created_at DESC
-    `
+    const savedFilters = await fetchWithRetry(
+      () => sql`
+        SELECT id, name, filters, created_at, updated_at 
+        FROM saved_filters 
+        ORDER BY created_at DESC
+      `
+    )
     console.log(`Successfully fetched ${savedFilters.length} saved filters`)
+
+    // Cache the result
+    setCachedData(cacheKey, savedFilters)
+
     return savedFilters
   } catch (error) {
     console.error("Error fetching saved filters:", error)
@@ -127,12 +247,18 @@ export async function deleteSavedFilter(id: number) {
     }
 
     console.log("Deleting saved filter:", id)
-    const result = await sql`
-      DELETE FROM saved_filters 
-      WHERE id = ${id}
-      RETURNING id, name
-    `
+    const result = await fetchWithRetry(
+      () => sql`
+        DELETE FROM saved_filters 
+        WHERE id = ${id}
+        RETURNING id, name
+      `
+    )
     console.log("Successfully deleted filter set:", result[0])
+
+    // Invalidate saved filters cache
+    dataCache.delete("saved_filters")
+
     return { success: true, data: result[0] }
   } catch (error) {
     console.error("Error deleting saved filter:", error)
@@ -147,19 +273,29 @@ export async function updateSavedFilter(id: number, name: string, filters: any) 
     }
 
     console.log("Updating saved filter:", id, name)
-    const result = await sql`
-      UPDATE saved_filters 
-      SET name = ${name}, filters = ${JSON.stringify(filters)}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${id}
-      RETURNING id, name, updated_at
-    `
+    const result = await fetchWithRetry(
+      () => sql`
+        UPDATE saved_filters 
+        SET name = ${name}, filters = ${JSON.stringify(filters)}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${id}
+        RETURNING id, name, updated_at
+      `
+    )
     console.log("Successfully updated filter set:", result[0])
+
+    // Invalidate saved filters cache
+    dataCache.delete("saved_filters")
+
     return { success: true, data: result[0] }
   } catch (error) {
     console.error("Error updating saved filter:", error)
     return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
   }
 }
+
+// ============================================
+// AGGREGATED DATA FUNCTIONS
+// ============================================
 
 export async function getAllData() {
   try {
@@ -188,6 +324,15 @@ export async function getAllData() {
       }
     }
 
+    // Check cache first for all data
+    const cacheKey = "all_data"
+    const cached = getCachedData(cacheKey)
+    if (cached) {
+      console.log("Returning all data from cache")
+      return cached
+    }
+
+    // Fetch all data in parallel with retry logic
     const [accounts, centers, functions, services] = await Promise.all([
       getAccounts(),
       getCenters(),
@@ -202,13 +347,18 @@ export async function getAllData() {
       services: services.length,
     })
 
-    return {
+    const allData = {
       accounts,
       centers,
       functions,
       services,
       error: null,
     }
+
+    // Cache all data together
+    setCachedData(cacheKey, allData)
+
+    return allData
   } catch (error) {
     console.error("Error fetching all data:", error)
     return {
@@ -221,7 +371,62 @@ export async function getAllData() {
   }
 }
 
-// Test database connection
+// ============================================
+// SERVER-SIDE FILTERING (ADVANCED - OPTIONAL)
+// ============================================
+
+/**
+ * Get filtered accounts from server side
+ * This is more efficient for large datasets
+ */
+export async function getFilteredAccounts(filters: {
+  countries?: string[]
+  regions?: string[]
+  industries?: string[]
+  searchTerm?: string
+}) {
+  try {
+    if (!sql) {
+      throw new Error("Database connection not initialized")
+    }
+
+    console.log("Fetching filtered accounts:", filters)
+
+    // Build dynamic query
+    let query = sql`SELECT * FROM accounts WHERE 1=1`
+
+    if (filters.countries && filters.countries.length > 0) {
+      query = sql`${query} AND "ACCOUNT COUNTRY" = ANY(${filters.countries})`
+    }
+
+    if (filters.regions && filters.regions.length > 0) {
+      query = sql`${query} AND "ACCOUNT REGION" = ANY(${filters.regions})`
+    }
+
+    if (filters.industries && filters.industries.length > 0) {
+      query = sql`${query} AND "ACCOUNT INDUSTRY" = ANY(${filters.industries})`
+    }
+
+    if (filters.searchTerm && filters.searchTerm.trim()) {
+      query = sql`${query} AND "ACCOUNT NAME" ILIKE ${`%${filters.searchTerm}%`}`
+    }
+
+    query = sql`${query} ORDER BY "ACCOUNT NAME"`
+
+    const results = await fetchWithRetry(() => query)
+    console.log(`Filtered accounts: ${results.length} results`)
+
+    return { success: true, data: results }
+  } catch (error) {
+    console.error("Error fetching filtered accounts:", error)
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error", data: [] }
+  }
+}
+
+// ============================================
+// DATABASE HEALTH & DIAGNOSTICS
+// ============================================
+
 export async function testConnection() {
   try {
     if (!process.env.DATABASE_URL) {
@@ -239,7 +444,7 @@ export async function testConnection() {
     }
 
     console.log("Testing database connection...")
-    const result = await sql`SELECT 1 as test`
+    const result = await fetchWithRetry(() => sql`SELECT 1 as test`)
     console.log("Database connection successful:", result)
     return { success: true, message: "Database connection successful" }
   } catch (error) {
@@ -251,7 +456,6 @@ export async function testConnection() {
   }
 }
 
-// Get database status for debugging
 export async function getDatabaseStatus() {
   try {
     const hasUrl = !!process.env.DATABASE_URL
@@ -262,6 +466,8 @@ export async function getDatabaseStatus() {
       hasConnection,
       urlLength: process.env.DATABASE_URL ? process.env.DATABASE_URL.length : 0,
       environment: process.env.NODE_ENV || "unknown",
+      cacheSize: dataCache.size,
+      cacheKeys: Array.from(dataCache.keys()),
     }
   } catch (error) {
     return {
@@ -269,10 +475,16 @@ export async function getDatabaseStatus() {
       hasConnection: false,
       urlLength: 0,
       environment: "unknown",
+      cacheSize: 0,
+      cacheKeys: [],
       error: error instanceof Error ? error.message : "Unknown error",
     }
   }
 }
+
+// ============================================
+// TYPESCRIPT INTERFACES
+// ============================================
 
 export interface FilterSet {
   id?: number
@@ -287,10 +499,12 @@ export interface FilterSet {
   updated_at?: string
 }
 
-// Exported function for loading filtered data
+// ============================================
+// LEGACY COMPATIBILITY FUNCTIONS
+// ============================================
+
 export async function loadData(filters: any) {
   try {
-    // For dashboard-content component usage
     const data = await getAllData()
     return { success: true, data }
   } catch (error) {
@@ -299,7 +513,6 @@ export async function loadData(filters: any) {
   }
 }
 
-// Exported function for exporting to Excel
 export async function exportToExcel(data: any[]) {
   try {
     // This function handles the Excel export
@@ -311,7 +524,6 @@ export async function exportToExcel(data: any[]) {
   }
 }
 
-// Exported function for loading saved filter sets
 export async function loadFilterSets() {
   try {
     const filters = await getSavedFilters()
@@ -322,7 +534,6 @@ export async function loadFilterSets() {
   }
 }
 
-// Exported function for deleting a filter set
 export async function deleteFilterSet(id: number) {
   try {
     const result = await deleteSavedFilter(id)
