@@ -26,9 +26,6 @@ import { MultiSelect } from "@/components/multi-select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getAllData, testConnection, getDatabaseStatus } from "./actions"
 import { SavedFiltersManager } from "@/components/saved-filters-manager"
-// import { UserMenu } from "@/components/user-menu"
-// import { AuthWrapper } from "@/components/auth-wrapper"
-// import type { User } from "./auth/actions"
 
 interface Account {
   "ACCOUNT NASSCOM STATUS": string
@@ -135,10 +132,6 @@ interface AvailableOptions {
   functionTypes: FilterOption[]
 }
 
-// interface DashboardContentComponent {
-//   // Removed user prop - no longer needed without auth
-// }
-
 function DashboardContent() {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [centers, setCenters] = useState<Center[]>([])
@@ -195,6 +188,7 @@ function DashboardContent() {
   })
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(50)
+  const [isApplying, setIsApplying] = useState(false)
 
   // Helper function to parse revenue values (already in millions in DB)
   const parseRevenue = (value: string | number): number => {
@@ -428,41 +422,6 @@ function DashboardContent() {
       finalAccountNames.includes(account["ACCOUNT NAME"]),
     )
 
-    console.log("Filtering Debug:", {
-      totalAccounts: accounts.length,
-      filteredAccounts: finalFilteredAccounts.length,
-      totalCenters: centers.length,
-      filteredCenters: filteredCenters.length,
-      totalServices: services.length,
-      filteredServices: filteredServices.length,
-      finalCenterKeys: finalCenterKeys.length,
-      revenueRange: filters.accountRevenueRange,
-      accountFiltersApplied:
-        filters.accountCountries.length +
-          filters.accountRegions.length +
-          filters.accountIndustries.length +
-          filters.accountSubIndustries.length +
-          filters.accountPrimaryCategories.length +
-          filters.accountPrimaryNatures.length +
-          filters.accountNasscomStatuses.length +
-          filters.accountEmployeesRanges.length +
-          filters.accountCenterEmployees.length +
-          (filters.accountRevenueRange[0] !== revenueRange.min || filters.accountRevenueRange[1] !== revenueRange.max
-            ? 1
-            : 0) >
-        0,
-      centerFiltersApplied:
-        filters.centerTypes.length +
-          filters.centerFocus.length +
-          filters.centerCities.length +
-          filters.centerStates.length +
-          filters.centerCountries.length +
-          filters.centerEmployees.length +
-          filters.centerStatuses.length >
-        0,
-      functionFiltersApplied: filters.functionTypes.length > 0,
-    })
-
     return {
       filteredAccounts: finalFilteredAccounts,
       filteredCenters,
@@ -573,25 +532,9 @@ function DashboardContent() {
     })
   }, [dynamicRevenueRange])
 
-  // Helper function to get unique values with counts - memoized
-  const getUniqueValuesWithCounts = useCallback((data: any[], key: string): FilterOption[] => {
-    const counts: Record<string, number> = {}
-    data.forEach((item) => {
-      const value = item[key]
-      if (value) {
-        counts[value] = (counts[value] || 0) + 1
-      }
-    })
-
-    return Object.entries(counts)
-      .map(([value, count]) => ({ value, count }))
-      .sort((a, b) => b.count - a.count)
-  }, [])
-
-  // Calculate available options - memoized and optimized
+  // OPTIMIZED: Calculate available options with single-pass filtering
   const availableOptions = useMemo((): AvailableOptions => {
     if (isUpdatingOptions.current) {
-      // Return empty options during update to prevent loops
       return {
         accountCountries: [],
         accountRegions: [],
@@ -613,136 +556,301 @@ function DashboardContent() {
       }
     }
 
-    // Calculate what options would be available for each filter
-    const getFilteredDataForField = (excludeField: keyof Filters) => {
-      const tempFilters = {
-        ...filters,
-        [excludeField]: excludeField === "accountRevenueRange" ? [revenueRange.min, revenueRange.max] : [],
+    // Single pass through accounts to collect counts
+    const accountCounts = {
+      countries: new Map<string, number>(),
+      regions: new Map<string, number>(),
+      industries: new Map<string, number>(),
+      subIndustries: new Map<string, number>(),
+      primaryCategories: new Map<string, number>(),
+      primaryNatures: new Map<string, number>(),
+      nasscomStatuses: new Map<string, number>(),
+      employeesRanges: new Map<string, number>(),
+      centerEmployees: new Map<string, number>(),
+    }
+
+    const validAccountNames = new Set<string>()
+
+    accounts.forEach((account) => {
+      // Check if account matches current filters (excluding the field being counted)
+      const matchesSearch =
+        !filters.searchTerm || account["ACCOUNT NAME"].toLowerCase().includes(filters.searchTerm.toLowerCase())
+
+      if (!matchesSearch) return
+
+      const revenue = parseRevenue(account["ACCOUNT REVNUE"])
+      const matchesRevenue = filters.includeNullRevenue
+        ? true
+        : revenue >= filters.accountRevenueRange[0] && revenue <= filters.accountRevenueRange[1]
+
+      if (!matchesRevenue) return
+
+      // Increment counts for each field
+      const country = account["ACCOUNT COUNTRY"]
+      const region = account["ACCOUNT REGION"]
+      const industry = account["ACCOUNT INDUSTRY"]
+      const subIndustry = account["ACCOUNT SUB INDUSTRY"]
+      const category = account["ACCOUNT PRIMARY CATEGORY"]
+      const nature = account["ACCOUNT PRIMARY NATURE"]
+      const nasscom = account["ACCOUNT NASSCOM STATUS"]
+      const empRange = account["ACCOUNT EMPLOYEES RANGE"]
+      const centerEmp = account["ACCOUNT CENTER EMPLOYEES"]
+
+      // Check if account matches all OTHER filters
+      const matchesCountry = filters.accountCountries.length === 0 || filters.accountCountries.includes(country)
+      const matchesRegion = filters.accountRegions.length === 0 || filters.accountRegions.includes(region)
+      const matchesIndustry = filters.accountIndustries.length === 0 || filters.accountIndustries.includes(industry)
+      const matchesSubIndustry =
+        filters.accountSubIndustries.length === 0 || filters.accountSubIndustries.includes(subIndustry)
+      const matchesCategory =
+        filters.accountPrimaryCategories.length === 0 || filters.accountPrimaryCategories.includes(category)
+      const matchesNature =
+        filters.accountPrimaryNatures.length === 0 || filters.accountPrimaryNatures.includes(nature)
+      const matchesNasscom =
+        filters.accountNasscomStatuses.length === 0 || filters.accountNasscomStatuses.includes(nasscom)
+      const matchesEmpRange =
+        filters.accountEmployeesRanges.length === 0 || filters.accountEmployeesRanges.includes(empRange)
+      const matchesCenterEmp =
+        filters.accountCenterEmployees.length === 0 || filters.accountCenterEmployees.includes(centerEmp)
+
+      // For each field, count it if all OTHER filters match
+      if (
+        matchesRegion &&
+        matchesIndustry &&
+        matchesSubIndustry &&
+        matchesCategory &&
+        matchesNature &&
+        matchesNasscom &&
+        matchesEmpRange &&
+        matchesCenterEmp
+      ) {
+        accountCounts.countries.set(country, (accountCounts.countries.get(country) || 0) + 1)
+      }
+      if (
+        matchesCountry &&
+        matchesIndustry &&
+        matchesSubIndustry &&
+        matchesCategory &&
+        matchesNature &&
+        matchesNasscom &&
+        matchesEmpRange &&
+        matchesCenterEmp
+      ) {
+        accountCounts.regions.set(region, (accountCounts.regions.get(region) || 0) + 1)
+      }
+      if (
+        matchesCountry &&
+        matchesRegion &&
+        matchesSubIndustry &&
+        matchesCategory &&
+        matchesNature &&
+        matchesNasscom &&
+        matchesEmpRange &&
+        matchesCenterEmp
+      ) {
+        accountCounts.industries.set(industry, (accountCounts.industries.get(industry) || 0) + 1)
+      }
+      if (
+        matchesCountry &&
+        matchesRegion &&
+        matchesIndustry &&
+        matchesCategory &&
+        matchesNature &&
+        matchesNasscom &&
+        matchesEmpRange &&
+        matchesCenterEmp
+      ) {
+        accountCounts.subIndustries.set(subIndustry, (accountCounts.subIndustries.get(subIndustry) || 0) + 1)
+      }
+      if (
+        matchesCountry &&
+        matchesRegion &&
+        matchesIndustry &&
+        matchesSubIndustry &&
+        matchesNature &&
+        matchesNasscom &&
+        matchesEmpRange &&
+        matchesCenterEmp
+      ) {
+        accountCounts.primaryCategories.set(category, (accountCounts.primaryCategories.get(category) || 0) + 1)
+      }
+      if (
+        matchesCountry &&
+        matchesRegion &&
+        matchesIndustry &&
+        matchesSubIndustry &&
+        matchesCategory &&
+        matchesNasscom &&
+        matchesEmpRange &&
+        matchesCenterEmp
+      ) {
+        accountCounts.primaryNatures.set(nature, (accountCounts.primaryNatures.get(nature) || 0) + 1)
+      }
+      if (
+        matchesCountry &&
+        matchesRegion &&
+        matchesIndustry &&
+        matchesSubIndustry &&
+        matchesCategory &&
+        matchesNature &&
+        matchesEmpRange &&
+        matchesCenterEmp
+      ) {
+        accountCounts.nasscomStatuses.set(nasscom, (accountCounts.nasscomStatuses.get(nasscom) || 0) + 1)
+      }
+      if (
+        matchesCountry &&
+        matchesRegion &&
+        matchesIndustry &&
+        matchesSubIndustry &&
+        matchesCategory &&
+        matchesNature &&
+        matchesNasscom &&
+        matchesCenterEmp
+      ) {
+        accountCounts.employeesRanges.set(empRange, (accountCounts.employeesRanges.get(empRange) || 0) + 1)
+      }
+      if (
+        matchesCountry &&
+        matchesRegion &&
+        matchesIndustry &&
+        matchesSubIndustry &&
+        matchesCategory &&
+        matchesNature &&
+        matchesNasscom &&
+        matchesEmpRange
+      ) {
+        accountCounts.centerEmployees.set(centerEmp, (accountCounts.centerEmployees.get(centerEmp) || 0) + 1)
       }
 
-      const arrayFilterMatch = (filterArray: string[], value: string) => {
-        return filterArray.length === 0 || filterArray.includes(value)
+      // Track valid accounts for center filtering
+      if (
+        matchesCountry &&
+        matchesRegion &&
+        matchesIndustry &&
+        matchesSubIndustry &&
+        matchesCategory &&
+        matchesNature &&
+        matchesNasscom &&
+        matchesEmpRange &&
+        matchesCenterEmp
+      ) {
+        validAccountNames.add(account["ACCOUNT NAME"])
+      }
+    })
+
+    // Single pass through centers
+    const centerCounts = {
+      types: new Map<string, number>(),
+      focus: new Map<string, number>(),
+      cities: new Map<string, number>(),
+      states: new Map<string, number>(),
+      countries: new Map<string, number>(),
+      employees: new Map<string, number>(),
+      statuses: new Map<string, number>(),
+    }
+
+    const validCenterKeys = new Set<string>()
+
+    centers.forEach((center) => {
+      if (!validAccountNames.has(center["ACCOUNT NAME"])) return
+
+      const type = center["CENTER TYPE"]
+      const focus = center["CENTER FOCUS"]
+      const city = center["CENTER CITY"]
+      const state = center["CENTER STATE"]
+      const country = center["CENTER COUNTRY"]
+      const employees = center["CENTER EMPLOYEES RANGE"]
+      const status = center["CENTER STATUS"]
+
+      const matchesType = filters.centerTypes.length === 0 || filters.centerTypes.includes(type)
+      const matchesFocus = filters.centerFocus.length === 0 || filters.centerFocus.includes(focus)
+      const matchesCity = filters.centerCities.length === 0 || filters.centerCities.includes(city)
+      const matchesState = filters.centerStates.length === 0 || filters.centerStates.includes(state)
+      const matchesCountry = filters.centerCountries.length === 0 || filters.centerCountries.includes(country)
+      const matchesEmployees = filters.centerEmployees.length === 0 || filters.centerEmployees.includes(employees)
+      const matchesStatus = filters.centerStatuses.length === 0 || filters.centerStatuses.includes(status)
+
+      if (matchesFocus && matchesCity && matchesState && matchesCountry && matchesEmployees && matchesStatus) {
+        centerCounts.types.set(type, (centerCounts.types.get(type) || 0) + 1)
+      }
+      if (matchesType && matchesCity && matchesState && matchesCountry && matchesEmployees && matchesStatus) {
+        centerCounts.focus.set(focus, (centerCounts.focus.get(focus) || 0) + 1)
+      }
+      if (matchesType && matchesFocus && matchesState && matchesCountry && matchesEmployees && matchesStatus) {
+        centerCounts.cities.set(city, (centerCounts.cities.get(city) || 0) + 1)
+      }
+      if (matchesType && matchesFocus && matchesCity && matchesCountry && matchesEmployees && matchesStatus) {
+        centerCounts.states.set(state, (centerCounts.states.get(state) || 0) + 1)
+      }
+      if (matchesType && matchesFocus && matchesCity && matchesState && matchesEmployees && matchesStatus) {
+        centerCounts.countries.set(country, (centerCounts.countries.get(country) || 0) + 1)
+      }
+      if (matchesType && matchesFocus && matchesCity && matchesState && matchesCountry && matchesStatus) {
+        centerCounts.employees.set(employees, (centerCounts.employees.get(employees) || 0) + 1)
+      }
+      if (matchesType && matchesFocus && matchesCity && matchesState && matchesCountry && matchesEmployees) {
+        centerCounts.statuses.set(status, (centerCounts.statuses.get(status) || 0) + 1)
       }
 
-      const rangeFilterMatch = (range: [number, number], value: string | number) => {
-        const numValue = parseRevenue(value)
-        return numValue >= range[0] && numValue <= range[1]
+      if (
+        matchesType &&
+        matchesFocus &&
+        matchesCity &&
+        matchesState &&
+        matchesCountry &&
+        matchesEmployees &&
+        matchesStatus
+      ) {
+        validCenterKeys.add(center["CN UNIQUE KEY"])
       }
+    })
 
-      // Filter accounts first
-      const tempAccounts = accounts.filter((account) => {
-        return (
-          arrayFilterMatch(tempFilters.accountCountries, account["ACCOUNT COUNTRY"]) &&
-          arrayFilterMatch(tempFilters.accountRegions, account["ACCOUNT REGION"]) &&
-          arrayFilterMatch(tempFilters.accountIndustries, account["ACCOUNT INDUSTRY"]) &&
-          arrayFilterMatch(tempFilters.accountSubIndustries, account["ACCOUNT SUB INDUSTRY"]) &&
-          arrayFilterMatch(tempFilters.accountPrimaryCategories, account["ACCOUNT PRIMARY CATEGORY"]) &&
-          arrayFilterMatch(tempFilters.accountPrimaryNatures, account["ACCOUNT PRIMARY NATURE"]) &&
-          arrayFilterMatch(tempFilters.accountNasscomStatuses, account["ACCOUNT NASSCOM STATUS"]) &&
-          arrayFilterMatch(tempFilters.accountEmployeesRanges, account["ACCOUNT EMPLOYEES RANGE"]) &&
-          arrayFilterMatch(tempFilters.accountCenterEmployees, account["ACCOUNT CENTER EMPLOYEES"]) &&
-          rangeFilterMatch(tempFilters.accountRevenueRange as [number, number], account["ACCOUNT REVNUE"]) &&
-          (tempFilters.searchTerm === "" ||
-            account["ACCOUNT NAME"].toLowerCase().includes(tempFilters.searchTerm.toLowerCase()))
-        )
-      })
+    // Single pass through functions
+    const functionCounts = new Map<string, number>()
 
-      const tempAccountNames = tempAccounts.map((a) => a["ACCOUNT NAME"])
+    functions.forEach((func) => {
+      if (!validCenterKeys.has(func["CN UNIQUE KEY"])) return
+      const funcType = func["FUNCTION"]
+      functionCounts.set(funcType, (functionCounts.get(funcType) || 0) + 1)
+    })
 
-      // Filter centers based on center filters AND account relationship
-      let tempCenters = centers.filter((center) => {
-        const centerFilterMatch =
-          arrayFilterMatch(tempFilters.centerTypes, center["CENTER TYPE"]) &&
-          arrayFilterMatch(tempFilters.centerFocus, center["CENTER FOCUS"]) &&
-          arrayFilterMatch(tempFilters.centerCities, center["CENTER CITY"]) &&
-          arrayFilterMatch(tempFilters.centerStates, center["CENTER STATE"]) &&
-          arrayFilterMatch(tempFilters.centerCountries, center["CENTER COUNTRY"]) &&
-          arrayFilterMatch(tempFilters.centerEmployees, center["CENTER EMPLOYEES RANGE"]) &&
-          arrayFilterMatch(tempFilters.centerStatuses, center["CENTER STATUS"])
-
-        const accountFilterMatch =
-          tempAccountNames.length === accounts.length || tempAccountNames.includes(center["ACCOUNT NAME"])
-
-        return centerFilterMatch && accountFilterMatch
-      })
-
-      // Filter functions
-      let tempFunctions = functions.filter((func) => {
-        const functionFilterMatch = arrayFilterMatch(tempFilters.functionTypes, func["FUNCTION"])
-        const tempCenterKeys = tempCenters.map((c) => c["CN UNIQUE KEY"])
-        const centerRelationMatch = tempCenterKeys.includes(func["CN UNIQUE KEY"])
-        return functionFilterMatch && centerRelationMatch
-      })
-
-      // Cross-filter if function filters are applied
-      if (tempFilters.functionTypes.length > 0) {
-        const centerKeysWithFunctions = tempFunctions.map((f) => f["CN UNIQUE KEY"])
-        tempCenters = tempCenters.filter((center) => centerKeysWithFunctions.includes(center["CN UNIQUE KEY"]))
-      }
-
-      const finalTempCenterKeys = tempCenters.map((c) => c["CN UNIQUE KEY"])
-      tempFunctions = tempFunctions.filter((func) => finalTempCenterKeys.includes(func["CN UNIQUE KEY"]))
-
-      // Final account filtering
-      const finalTempAccountNames = [...new Set(tempCenters.map((c) => c["ACCOUNT NAME"]))]
-      const finalTempAccounts = tempAccounts.filter((account) =>
-        finalTempAccountNames.includes(account["ACCOUNT NAME"]),
-      )
-
-      return { accounts: finalTempAccounts, centers: tempCenters, functions: tempFunctions }
+    // Convert Maps to sorted arrays
+    const mapToSortedArray = (map: Map<string, number>): FilterOption[] => {
+      return Array.from(map.entries())
+        .map(([value, count]) => ({ value, count }))
+        .sort((a, b) => b.count - a.count)
     }
 
     return {
-      accountCountries: getUniqueValuesWithCounts(
-        getFilteredDataForField("accountCountries").accounts,
-        "ACCOUNT COUNTRY",
-      ),
-      accountRegions: getUniqueValuesWithCounts(getFilteredDataForField("accountRegions").accounts, "ACCOUNT REGION"),
-      accountIndustries: getUniqueValuesWithCounts(
-        getFilteredDataForField("accountIndustries").accounts,
-        "ACCOUNT INDUSTRY",
-      ),
-      accountSubIndustries: getUniqueValuesWithCounts(
-        getFilteredDataForField("accountSubIndustries").accounts,
-        "ACCOUNT SUB INDUSTRY",
-      ),
-      accountPrimaryCategories: getUniqueValuesWithCounts(
-        getFilteredDataForField("accountPrimaryCategories").accounts,
-        "ACCOUNT PRIMARY CATEGORY",
-      ),
-      accountPrimaryNatures: getUniqueValuesWithCounts(
-        getFilteredDataForField("accountPrimaryNatures").accounts,
-        "ACCOUNT PRIMARY NATURE",
-      ),
-      accountNasscomStatuses: getUniqueValuesWithCounts(
-        getFilteredDataForField("accountNasscomStatuses").accounts,
-        "ACCOUNT NASSCOM STATUS",
-      ),
-      accountEmployeesRanges: getUniqueValuesWithCounts(
-        getFilteredDataForField("accountEmployeesRanges").accounts,
-        "ACCOUNT EMPLOYEES RANGE",
-      ),
-      accountCenterEmployees: getUniqueValuesWithCounts(
-        getFilteredDataForField("accountCenterEmployees").accounts,
-        "ACCOUNT CENTER EMPLOYEES",
-      ),
-      centerTypes: getUniqueValuesWithCounts(getFilteredDataForField("centerTypes").centers, "CENTER TYPE"),
-      centerFocus: getUniqueValuesWithCounts(getFilteredDataForField("centerFocus").centers, "CENTER FOCUS"),
-      centerCities: getUniqueValuesWithCounts(getFilteredDataForField("centerCities").centers, "CENTER CITY"),
-      centerStates: getUniqueValuesWithCounts(getFilteredDataForField("centerStates").centers, "CENTER STATE"),
-      centerCountries: getUniqueValuesWithCounts(getFilteredDataForField("centerCountries").centers, "CENTER COUNTRY"),
-      centerEmployees: getUniqueValuesWithCounts(
-        getFilteredDataForField("centerEmployees").centers,
-        "CENTER EMPLOYEES RANGE",
-      ),
-      centerStatuses: getUniqueValuesWithCounts(getFilteredDataForField("centerStatuses").centers, "CENTER STATUS"),
-      functionTypes: getUniqueValuesWithCounts(getFilteredDataForField("functionTypes").functions, "FUNCTION"),
+      accountCountries: mapToSortedArray(accountCounts.countries),
+      accountRegions: mapToSortedArray(accountCounts.regions),
+      accountIndustries: mapToSortedArray(accountCounts.industries),
+      accountSubIndustries: mapToSortedArray(accountCounts.subIndustries),
+      accountPrimaryCategories: mapToSortedArray(accountCounts.primaryCategories),
+      accountPrimaryNatures: mapToSortedArray(accountCounts.primaryNatures),
+      accountNasscomStatuses: mapToSortedArray(accountCounts.nasscomStatuses),
+      accountEmployeesRanges: mapToSortedArray(accountCounts.employeesRanges),
+      accountCenterEmployees: mapToSortedArray(accountCounts.centerEmployees),
+      centerTypes: mapToSortedArray(centerCounts.types),
+      centerFocus: mapToSortedArray(centerCounts.focus),
+      centerCities: mapToSortedArray(centerCounts.cities),
+      centerStates: mapToSortedArray(centerCounts.states),
+      centerCountries: mapToSortedArray(centerCounts.countries),
+      centerEmployees: mapToSortedArray(centerCounts.employees),
+      centerStatuses: mapToSortedArray(centerCounts.statuses),
+      functionTypes: mapToSortedArray(functionCounts),
     }
-  }, [accounts, centers, functions, filters, getUniqueValuesWithCounts, revenueRange])
+  }, [accounts, centers, functions, filters])
 
-  const applyFilters = () => {
-    setFilters(pendingFilters)
-  }
+  const applyFilters = useCallback(() => {
+    setIsApplying(true)
+    // Use setTimeout to allow UI to update
+    setTimeout(() => {
+      setFilters(pendingFilters)
+      setIsApplying(false)
+    }, 0)
+  }, [pendingFilters])
 
   const resetFilters = () => {
     const emptyFilters = {
@@ -1176,11 +1284,20 @@ function DashboardContent() {
                       variant="default"
                       size="sm"
                       onClick={applyFilters}
-                      disabled={!hasUnappliedChanges()}
+                      disabled={!hasUnappliedChanges() || isApplying}
                       className="flex items-center gap-2"
                     >
-                      <Filter className="h-4 w-4" />
-                      Apply Filters {getTotalPendingFilters() > 0 && `(${getTotalPendingFilters()})`}
+                      {isApplying ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          Applying...
+                        </>
+                      ) : (
+                        <>
+                          <Filter className="h-4 w-4" />
+                          Apply Filters {getTotalPendingFilters() > 0 && `(${getTotalPendingFilters()})`}
+                        </>
+                      )}
                     </Button>
                     <Button variant="outline" size="sm" onClick={resetFilters}>
                       <RotateCcw className="h-4 w-4 mr-2" />
