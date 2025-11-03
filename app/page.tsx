@@ -1099,7 +1099,7 @@ function DashboardContent() {
   }
 
   const dataLoaded =
-    !loading && accounts.length > 0 && centers.length > 0 && functions.length > 0 && services.length > 0
+    !loading && accounts.length > 0 && centers.length > 0 && services.length > 0
 
   if (loading) {
     return (
@@ -1948,8 +1948,8 @@ function DashboardContent() {
             </Tabs>
             </div>
           </div>
+        </div>
         )}
-      </div>
     </div>
   )
 }
