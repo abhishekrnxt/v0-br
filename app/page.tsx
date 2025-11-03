@@ -1299,37 +1299,6 @@ function DashboardContent() {
           {/* Left Sidebar - Filters (30%) */}
           <div className="w-[30%] border-r bg-white overflow-y-auto">
             <div className="p-4 space-y-4">
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 gap-3 mb-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">Total Accounts</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">{filteredData.filteredAccounts.length}</div>
-                    <p className="text-xs text-gray-500">of {accounts.length} total</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">Total Centers</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-green-600">{filteredData.filteredCenters.length}</div>
-                    <p className="text-xs text-gray-500">of {centers.length} total</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">Total Services</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-purple-600">{filteredData.filteredServices.length}</div>
-                    <p className="text-xs text-gray-500">of {services.length} total</p>
-                  </CardContent>
-                </Card>
-              </div>
-
               {/* Filter Actions */}
               <div className="flex flex-col gap-2 mb-4">
                 <div className="flex items-center gap-2">
@@ -1677,6 +1646,37 @@ function DashboardContent() {
           {/* Right Side - Data View (70%) */}
           <div className="flex-1 w-[70%] overflow-y-auto bg-gray-50">
             <div className="p-6">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Total Accounts</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600">{filteredData.filteredAccounts.length}</div>
+                    <p className="text-xs text-gray-500">of {accounts.length} total</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Total Centers</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-600">{filteredData.filteredCenters.length}</div>
+                    <p className="text-xs text-gray-500">of {centers.length} total</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Total Services</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-purple-600">{filteredData.filteredServices.length}</div>
+                    <p className="text-xs text-gray-500">of {services.length} total</p>
+                  </CardContent>
+                </Card>
+              </div>
+
               {/* Data Tables */}
               <Tabs defaultValue="accounts" className="space-y-4">
                 <TabsList className="grid w-full grid-cols-3">
