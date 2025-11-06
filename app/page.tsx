@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect, memo } from "react"
 import * as XLSX from "xlsx"
+import { UserButton, useUser } from "@clerk/nextjs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -336,6 +337,7 @@ function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (..
 }
 
 function DashboardContent() {
+  const { user } = useUser()
   const [accounts, setAccounts] = useState<Account[]>([])
   const [centers, setCenters] = useState<Center[]>([])
   const [functions, setFunctions] = useState<Function[]>([])
@@ -1396,15 +1398,25 @@ function DashboardContent() {
               <h1 className="text-2xl font-bold text-gray-900">Business Intelligence Platform</h1>
               <p className="text-sm text-gray-600 mt-1">Intelligence-driven insights for accounts, centers, and services</p>
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm text-gray-500">Connected to Neon Database</span>
-              <Button variant="ghost" size="sm" onClick={loadData} className="h-8 px-3">
-                <RefreshCw className="h-3 w-3" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleClearCache} className="h-8 px-3" title="Clear Cache">
-                <Database className="h-3 w-3" />
-              </Button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <span className="text-sm text-gray-500">Connected to Neon Database</span>
+                <Button variant="ghost" size="sm" onClick={loadData} className="h-8 px-3">
+                  <RefreshCw className="h-3 w-3" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleClearCache} className="h-8 px-3" title="Clear Cache">
+                  <Database className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+                {user && (
+                  <span className="text-sm text-gray-700">
+                    Welcome, {user.firstName || user.emailAddresses[0]?.emailAddress}
+                  </span>
+                )}
+                <UserButton afterSignOutUrl="/sign-in" />
+              </div>
             </div>
           </div>
           {connectionStatus && <p className="text-xs text-gray-400 mt-1">{connectionStatus}</p>}
