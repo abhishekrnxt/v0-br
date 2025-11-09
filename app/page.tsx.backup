@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useCallback, useMemo, useRef, useEffect } from "react"
+import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from "react"
+import * as XLSX from "xlsx"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Slider } from "@/components/ui/slider"
+import { PieChart, Pie, Cell, Legend } from "recharts"
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart"
 import {
   Filter,
   RotateCcw,
@@ -31,28 +34,355 @@ import { MultiSelect } from "@/components/multi-select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getAllData, testConnection, getDatabaseStatus, clearCache } from "./actions"
 import { SavedFiltersManager } from "@/components/saved-filters-manager"
-import { AccountRow, CenterRow, FunctionRow, ServiceRow } from "@/components/tables"
-import { PieChartCard } from "@/components/charts/pie-chart-card"
-import {
-  parseRevenue,
-  formatRevenueInMillions,
-  debounce,
-  getPaginatedData,
-  getTotalPages,
-  getPageInfo,
-  copyToClipboard,
-} from "@/lib/utils/helpers"
-import {
-  calculateChartData,
-  calculateCenterChartData,
-  calculateCityChartData,
-  calculateFunctionChartData,
-} from "@/lib/utils/chart-helpers"
-import {
-  exportToExcel,
-  exportAllData as exportAll,
-} from "@/lib/utils/export-helpers"
-import type { Account, Center, Function, Service, Filters, FilterOption, AvailableOptions } from "@/lib/types"
+
+interface Account {
+  "ACCOUNT NASSCOM STATUS": string
+  "ACCOUNT NAME": string
+  "ACCOUNT COUNTRY": string
+  "ACCOUNT REGION": string
+  "ACCOUNT SUB INDUSTRY": string
+  "ACCOUNT INDUSTRY": string
+  "ACCOUNT PRIMARY CATEGORY": string
+  "ACCOUNT PRIMARY NATURE": string
+  "ACCOUNT REVNUE": string
+  "ACCOUNT REVENUE RANGE": string
+  "ACCOUNT EMPLOYEES": string
+  "ACCOUNT EMPLOYEES RANGE": string
+  "ACCOUNT CENTER EMPLOYEES": string
+}
+
+interface Center {
+  "ACCOUNT NAME": string
+  "CN UNIQUE KEY": string
+  "CENTER STATUS": string
+  "CENTER INC YEAR": string
+  "CENTER NAME": string
+  "CENTER TYPE": string
+  "CENTER FOCUS": string
+  "CENTER CITY": string
+  "CENTER STATE": string
+  "CENTER COUNTRY": string
+  "CENTER EMPLOYEES": string
+  "CENTER EMPLOYEES RANGE": string
+}
+
+interface Function {
+  "CN UNIQUE KEY": string
+  FUNCTION: string
+}
+
+interface Service {
+  "CN UNIQUE KEY": string
+  "CENTER NAME": string
+  "CENTER TYPE": string
+  "CENTER FOCUS": string
+  "CENTER CITY": string
+  "PRIMARY SERVICE": string
+  "FOCUS REGION": string
+  IT: string
+  "ER&D": string
+  FnA: string
+  HR: string
+  PROCUREMENT: string
+  "SALES & MARKETING": string
+  "CUSTOMER SUPPORT": string
+  OTHERS: string
+  "SOFTWARE VENDOR": string
+  "SOFTWARE IN USE": string
+}
+
+interface Filters {
+  accountCountries: string[]
+  accountRegions: string[]
+  accountIndustries: string[]
+  accountSubIndustries: string[]
+  accountPrimaryCategories: string[]
+  accountPrimaryNatures: string[]
+  accountNasscomStatuses: string[]
+  accountEmployeesRanges: string[]
+  accountCenterEmployees: string[]
+  accountRevenueRange: [number, number]
+  includeNullRevenue: boolean
+  centerTypes: string[]
+  centerFocus: string[]
+  centerCities: string[]
+  centerStates: string[]
+  centerCountries: string[]
+  centerEmployees: string[]
+  centerStatuses: string[]
+  functionTypes: string[]
+  searchTerm: string
+}
+
+interface FilterOption {
+  value: string
+  count: number
+  disabled?: boolean
+}
+
+interface AvailableOptions {
+  accountCountries: FilterOption[]
+  accountRegions: FilterOption[]
+  accountIndustries: FilterOption[]
+  accountSubIndustries: FilterOption[]
+  accountPrimaryCategories: FilterOption[]
+  accountPrimaryNatures: FilterOption[]
+  accountNasscomStatuses: FilterOption[]
+  accountEmployeesRanges: FilterOption[]
+  accountCenterEmployees: FilterOption[]
+  centerTypes: FilterOption[]
+  centerFocus: FilterOption[]
+  centerCities: FilterOption[]
+  centerStates: FilterOption[]
+  centerCountries: FilterOption[]
+  centerEmployees: FilterOption[]
+  centerStatuses: FilterOption[]
+  functionTypes: FilterOption[]
+}
+
+// ============================================
+// MEMOIZED COMPONENTS FOR PERFORMANCE
+// ============================================
+
+const AccountRow = memo(({ account }: { account: Account }) => (
+  <TableRow>
+    <TableCell className="font-medium">{account["ACCOUNT NAME"]}</TableCell>
+    <TableCell>{account["ACCOUNT COUNTRY"]}</TableCell>
+    <TableCell>{account["ACCOUNT REGION"]}</TableCell>
+    <TableCell>{account["ACCOUNT INDUSTRY"]}</TableCell>
+    <TableCell>{account["ACCOUNT SUB INDUSTRY"]}</TableCell>
+    <TableCell>{account["ACCOUNT PRIMARY CATEGORY"]}</TableCell>
+    <TableCell>{account["ACCOUNT PRIMARY NATURE"]}</TableCell>
+    <TableCell>{account["ACCOUNT NASSCOM STATUS"]}</TableCell>
+    <TableCell>{formatRevenueInMillions(parseRevenue(account["ACCOUNT REVNUE"]))}</TableCell>
+    <TableCell>{account["ACCOUNT REVENUE RANGE"]}</TableCell>
+    <TableCell>{account["ACCOUNT EMPLOYEES RANGE"]}</TableCell>
+    <TableCell>{account["ACCOUNT CENTER EMPLOYEES"]}</TableCell>
+  </TableRow>
+))
+AccountRow.displayName = "AccountRow"
+
+const CenterRow = memo(({ center }: { center: Center }) => (
+  <TableRow>
+    <TableCell className="font-medium">{center["CENTER NAME"]}</TableCell>
+    <TableCell className="text-xs text-gray-600">{center["CN UNIQUE KEY"]}</TableCell>
+    <TableCell>{center["ACCOUNT NAME"]}</TableCell>
+    <TableCell>{center["CENTER TYPE"]}</TableCell>
+    <TableCell>{center["CENTER CITY"]}</TableCell>
+    <TableCell>{center["CENTER STATE"]}</TableCell>
+    <TableCell>{center["CENTER COUNTRY"]}</TableCell>
+    <TableCell>{center["CENTER STATUS"]}</TableCell>
+    <TableCell>{center["CENTER EMPLOYEES"]}</TableCell>
+    <TableCell>{center["CENTER EMPLOYEES RANGE"]}</TableCell>
+  </TableRow>
+))
+CenterRow.displayName = "CenterRow"
+
+const FunctionRow = memo(({ func }: { func: Function }) => (
+  <TableRow>
+    <TableCell className="text-xs text-gray-600">{func["CN UNIQUE KEY"]}</TableCell>
+    <TableCell>{func["FUNCTION"]}</TableCell>
+  </TableRow>
+))
+FunctionRow.displayName = "FunctionRow"
+
+const ServiceRow = memo(({ service }: { service: Service }) => (
+  <TableRow>
+    <TableCell className="text-xs text-gray-600">{service["CN UNIQUE KEY"]}</TableCell>
+    <TableCell>{service["CENTER NAME"]}</TableCell>
+    <TableCell>{service["PRIMARY SERVICE"]}</TableCell>
+    <TableCell>{service["FOCUS REGION"]}</TableCell>
+    <TableCell>{service.IT}</TableCell>
+    <TableCell>{service["ER&D"]}</TableCell>
+    <TableCell>{service.FnA}</TableCell>
+    <TableCell>{service.HR}</TableCell>
+    <TableCell>{service.PROCUREMENT}</TableCell>
+    <TableCell>{service["SALES & MARKETING"]}</TableCell>
+    <TableCell>{service["CUSTOMER SUPPORT"]}</TableCell>
+    <TableCell>{service.OTHERS}</TableCell>
+    <TableCell>{service["SOFTWARE VENDOR"]}</TableCell>
+    <TableCell>{service["SOFTWARE IN USE"]}</TableCell>
+  </TableRow>
+))
+ServiceRow.displayName = "ServiceRow"
+
+// Pie Chart Component with shadcn/ui
+const PieChartCard = memo(({ title, data, dataKey = "value" }: { title: string; data: any[]; dataKey?: string }) => {
+  // Create chart config from data
+  const chartConfig = React.useMemo(() => {
+    const config: ChartConfig = {}
+    data.forEach((item, index) => {
+      config[item.name] = {
+        label: item.name,
+        color: CHART_COLORS[index % CHART_COLORS.length],
+      }
+    })
+    return config
+  }, [data])
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <PieChartIcon className="h-4 w-4 text-blue-600" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {data.length > 0 ? (
+          <ChartContainer config={chartConfig} className="h-[300px] w-full">
+            <PieChart>
+              <ChartTooltip
+                content={<ChartTooltipContent hideLabel />}
+              />
+              <Pie
+                data={data}
+                dataKey={dataKey}
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                ))}
+              </Pie>
+              <ChartLegend content={<ChartLegendContent />} />
+            </PieChart>
+          </ChartContainer>
+        ) : (
+          <div className="h-[300px] flex items-center justify-center text-gray-400">
+            <p className="text-sm">No data available</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+})
+PieChartCard.displayName = "PieChartCard"
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+const parseRevenue = (value: string | number): number => {
+  const numValue = typeof value === "string" ? Number.parseFloat(value) : value
+  return isNaN(numValue) ? 0 : numValue
+}
+
+const formatRevenueInMillions = (value: number): string => {
+  return `${value.toLocaleString()}M`
+}
+
+// Color palette for charts
+const CHART_COLORS = [
+  "#3b82f6", // blue
+  "#10b981", // green
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#06b6d4", // cyan
+  "#f97316", // orange
+  "#14b8a6", // teal
+  "#6366f1", // indigo
+  "#84cc16", // lime
+  "#a855f7", // purple
+  "#f43f5e", // rose
+  "#22d3ee", // sky
+  "#facc15", // yellow
+]
+
+// Calculate chart data from accounts
+const calculateChartData = (accounts: Account[], field: keyof Account) => {
+  const counts = new Map<string, number>()
+
+  accounts.forEach((account) => {
+    const value = account[field] || "Unknown"
+    counts.set(value, (counts.get(value) || 0) + 1)
+  })
+
+  return Array.from(counts.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10) // Top 10 for better readability
+}
+
+// Calculate chart data from centers
+const calculateCenterChartData = (centers: Center[], field: keyof Center) => {
+  const counts = new Map<string, number>()
+
+  centers.forEach((center) => {
+    const value = center[field] || "Unknown"
+    counts.set(value, (counts.get(value) || 0) + 1)
+  })
+
+  return Array.from(counts.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10) // Top 10 for better readability
+}
+
+// Calculate city chart data with top 5 + Others
+const calculateCityChartData = (centers: Center[]) => {
+  const counts = new Map<string, number>()
+
+  centers.forEach((center) => {
+    const city = center["CENTER CITY"] || "Unknown"
+    counts.set(city, (counts.get(city) || 0) + 1)
+  })
+
+  const sorted = Array.from(counts.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+
+  // Take top 5 and group the rest as "Others"
+  if (sorted.length <= 5) {
+    return sorted
+  }
+
+  const top5 = sorted.slice(0, 5)
+  const others = sorted.slice(5).reduce((sum, item) => sum + item.value, 0)
+
+  if (others > 0) {
+    top5.push({ name: "Others", value: others })
+  }
+
+  return top5
+}
+
+// Calculate function chart data from centers
+const calculateFunctionChartData = (functions: Function[], centerKeys: string[]) => {
+  const counts = new Map<string, number>()
+
+  functions.forEach((func) => {
+    if (centerKeys.includes(func["CN UNIQUE KEY"])) {
+      const funcName = func["FUNCTION"] || "Unknown"
+      counts.set(funcName, (counts.get(funcName) || 0) + 1)
+    }
+  })
+
+  return Array.from(counts.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10) // Top 10 for better readability
+}
+
+// Debounce function
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null
+
+  return function executedFunction(...args: Parameters<T>) {
+    const later = () => {
+      timeout = null
+      func(...args)
+    }
+
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(later, wait)
+  }
+}
 
 function DashboardContent() {
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -875,13 +1205,60 @@ function DashboardContent() {
     setSearchInput(savedFilters.searchTerm)
   }
 
-  const handleExportAll = () => {
-    exportAll(
-      filteredData.filteredAccounts,
-      filteredData.filteredCenters,
-      filteredData.filteredFunctions,
-      filteredData.filteredServices
-    )
+  const getPaginatedData = (data: any[], page: number, itemsPerPage: number) => {
+    const startIndex = (page - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return data.slice(startIndex, endIndex)
+  }
+
+  const getTotalPages = (totalItems: number, itemsPerPage: number) => {
+    return Math.ceil(totalItems / itemsPerPage)
+  }
+
+  const getPageInfo = (currentPage: number, totalItems: number, itemsPerPage: number) => {
+    const startItem = (currentPage - 1) * itemsPerPage + 1
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems)
+    return { startItem, endItem, totalItems }
+  }
+
+  const exportToExcel = (data: any[], filename: string, sheetName: string) => {
+    try {
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.json_to_sheet(data)
+      XLSX.utils.book_append_sheet(wb, ws, sheetName)
+      XLSX.writeFile(wb, `${filename}.xlsx`)
+    } catch (error) {
+      console.error("Error exporting to Excel:", error)
+    }
+  }
+
+  const exportAllData = () => {
+    try {
+      const wb = XLSX.utils.book_new()
+
+      const accountsWs = XLSX.utils.json_to_sheet(filteredData.filteredAccounts)
+      XLSX.utils.book_append_sheet(wb, accountsWs, "Accounts")
+
+      const centersWs = XLSX.utils.json_to_sheet(filteredData.filteredCenters)
+      XLSX.utils.book_append_sheet(wb, centersWs, "Centers")
+
+      const functionsWs = XLSX.utils.json_to_sheet(filteredData.filteredFunctions)
+      XLSX.utils.book_append_sheet(wb, functionsWs, "Functions")
+
+      const servicesWs = XLSX.utils.json_to_sheet(filteredData.filteredServices)
+      XLSX.utils.book_append_sheet(wb, servicesWs, "Services")
+
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-")
+      const filename = `dashboard-export-${timestamp}`
+
+      XLSX.writeFile(wb, `${filename}.xlsx`)
+    } catch (error) {
+      console.error("Error exporting all data to Excel:", error)
+    }
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
   }
 
   const handleMinRevenueChange = (value: string) => {
@@ -1147,7 +1524,7 @@ function DashboardContent() {
                       <RotateCcw className="h-4 w-4 mr-2" />
                       Reset
                     </Button>
-                    <Button variant="default" size="sm" onClick={handleExportAll} className="flex-1 flex items-center justify-center gap-2">
+                    <Button variant="default" size="sm" onClick={exportAllData} className="flex-1 flex items-center justify-center gap-2">
                       <Download className="h-4 w-4" />
                       Export
                     </Button>
