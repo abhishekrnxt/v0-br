@@ -964,7 +964,8 @@ function DashboardContent() {
                 </TabsList>
 
               <AccountsTab
-                filteredAccounts={filteredData.filteredAccounts}
+                accounts={filteredData.filteredAccounts}
+                functions={functions}
                 accountChartData={accountChartData}
                 accountsView={accountsView}
                 setAccountsView={setAccountsView}
@@ -974,7 +975,8 @@ function DashboardContent() {
               />
 
               <CentersTab
-                filteredCenters={filteredData.filteredCenters}
+                centers={filteredData.filteredCenters}
+                functions={functions}
                 centerChartData={centerChartData}
                 centersView={centersView}
                 setCentersView={setCentersView}
@@ -984,7 +986,7 @@ function DashboardContent() {
               />
 
               <ServicesTab
-                filteredServices={filteredData.filteredServices}
+                services={filteredData.filteredServices}
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}
                 itemsPerPage={itemsPerPage}
