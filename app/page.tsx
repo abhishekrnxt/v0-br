@@ -296,12 +296,72 @@ const CHART_COLORS = [
 // Calculate chart data from accounts
 const calculateChartData = (accounts: Account[], field: keyof Account) => {
   const counts = new Map<string, number>()
-  
+
   accounts.forEach((account) => {
     const value = account[field] || "Unknown"
     counts.set(value, (counts.get(value) || 0) + 1)
   })
-  
+
+  return Array.from(counts.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10) // Top 10 for better readability
+}
+
+// Calculate chart data from centers
+const calculateCenterChartData = (centers: Center[], field: keyof Center) => {
+  const counts = new Map<string, number>()
+
+  centers.forEach((center) => {
+    const value = center[field] || "Unknown"
+    counts.set(value, (counts.get(value) || 0) + 1)
+  })
+
+  return Array.from(counts.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10) // Top 10 for better readability
+}
+
+// Calculate city chart data with top 5 + Others
+const calculateCityChartData = (centers: Center[]) => {
+  const counts = new Map<string, number>()
+
+  centers.forEach((center) => {
+    const city = center["CENTER CITY"] || "Unknown"
+    counts.set(city, (counts.get(city) || 0) + 1)
+  })
+
+  const sorted = Array.from(counts.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+
+  // Take top 5 and group the rest as "Others"
+  if (sorted.length <= 5) {
+    return sorted
+  }
+
+  const top5 = sorted.slice(0, 5)
+  const others = sorted.slice(5).reduce((sum, item) => sum + item.value, 0)
+
+  if (others > 0) {
+    top5.push({ name: "Others", value: others })
+  }
+
+  return top5
+}
+
+// Calculate function chart data from centers
+const calculateFunctionChartData = (functions: Function[], centerKeys: string[]) => {
+  const counts = new Map<string, number>()
+
+  functions.forEach((func) => {
+    if (centerKeys.includes(func["CN UNIQUE KEY"])) {
+      const funcName = func["FUNCTION"] || "Unknown"
+      counts.set(funcName, (counts.get(funcName) || 0) + 1)
+    }
+  })
+
   return Array.from(counts.entries())
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value)
@@ -644,7 +704,7 @@ function DashboardContent() {
   // Calculate chart data for accounts
   const accountChartData = useMemo(() => {
     const accounts = filteredData.filteredAccounts
-    
+
     return {
       regionData: calculateChartData(accounts, "ACCOUNT REGION"),
       primaryNatureData: calculateChartData(accounts, "ACCOUNT PRIMARY NATURE"),
@@ -652,6 +712,19 @@ function DashboardContent() {
       employeesRangeData: calculateChartData(accounts, "ACCOUNT EMPLOYEES RANGE"),
     }
   }, [filteredData.filteredAccounts])
+
+  // Calculate chart data for centers
+  const centerChartData = useMemo(() => {
+    const centers = filteredData.filteredCenters
+    const centerKeys = centers.map((c) => c["CN UNIQUE KEY"])
+
+    return {
+      centerTypeData: calculateCenterChartData(centers, "CENTER TYPE"),
+      employeesRangeData: calculateCenterChartData(centers, "CENTER EMPLOYEES RANGE"),
+      cityData: calculateCityChartData(centers),
+      functionData: calculateFunctionChartData(filteredData.filteredFunctions, centerKeys),
+    }
+  }, [filteredData.filteredCenters, filteredData.filteredFunctions])
 
   // Dynamic revenue range calculation
   const dynamicRevenueRange = useMemo(() => {
@@ -1909,6 +1982,37 @@ function DashboardContent() {
               </TabsContent>
 
               <TabsContent value="centers">
+                {/* Charts Section */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <PieChartIcon className="h-5 w-5 text-green-600" />
+                    <h2 className="text-lg font-semibold text-gray-900">Center Analytics</h2>
+                    <Badge variant="secondary" className="ml-auto">
+                      {filteredData.filteredCenters.length} Centers
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <PieChartCard
+                      title="Center Type Distribution"
+                      data={centerChartData.centerTypeData}
+                    />
+                    <PieChartCard
+                      title="Employee Range Distribution"
+                      data={centerChartData.employeesRangeData}
+                    />
+                    <PieChartCard
+                      title="City Distribution (Top 5)"
+                      data={centerChartData.cityData}
+                    />
+                    <PieChartCard
+                      title="Functions Distribution"
+                      data={centerChartData.functionData}
+                    />
+                  </div>
+                </div>
+
+                {/* Data Table */}
                 <Card>
                   <CardHeader>
                     <CardTitle>Centers Data</CardTitle>
