@@ -21,29 +21,29 @@ export function SummaryCards({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600">Total Accounts</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Total Accounts</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-blue-600">{filteredAccountsCount}</div>
-          <p className="text-xs text-gray-500">of {totalAccountsCount} total</p>
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{filteredAccountsCount}</div>
+          <p className="text-xs text-muted-foreground">of {totalAccountsCount} total</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600">Total Centers</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Total Centers</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">{filteredCentersCount}</div>
-          <p className="text-xs text-gray-500">of {totalCentersCount} total</p>
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400">{filteredCentersCount}</div>
+          <p className="text-xs text-muted-foreground">of {totalCentersCount} total</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600">Total Services</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Total Services</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-purple-600">{filteredServicesCount}</div>
-          <p className="text-xs text-gray-500">of {totalServicesCount} total</p>
+          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{filteredServicesCount}</div>
+          <p className="text-xs text-muted-foreground">of {totalServicesCount} total</p>
         </CardContent>
       </Card>
     </div>

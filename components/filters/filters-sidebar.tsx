@@ -66,13 +66,13 @@ export function FiltersSidebar({
   formatRevenueInMillions,
 }: FiltersSidebarProps) {
   return (
-    <div className="w-[30%] border-r bg-white overflow-y-auto">
+    <div className="w-[30%] border-r bg-card overflow-y-auto">
       <div className="p-4 space-y-4">
         {/* Filter Actions */}
         <div className="flex flex-col gap-2 mb-4">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-600" />
-            <span className="text-sm font-semibold text-gray-900">Filters</span>
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-semibold text-foreground">Filters</span>
             {getTotalActiveFilters() > 0 && (
               <Badge variant="secondary" className="ml-auto">{getTotalActiveFilters()} active</Badge>
             )}
@@ -142,7 +142,7 @@ export function FiltersSidebar({
                     className="text-sm"
                   />
                   {searchInput !== pendingFilters.searchTerm && (
-                    <p className="text-xs text-gray-400">Typing... (search will apply in 500ms)</p>
+                    <p className="text-xs text-muted-foreground">Typing... (search will apply in 500ms)</p>
                   )}
                 </div>
 
@@ -260,9 +260,9 @@ export function FiltersSidebar({
                               includeNullRevenue: e.target.checked,
                             }))
                           }
-                          className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-border rounded"
                         />
-                        <Label htmlFor="include-null-revenue" className="text-xs text-gray-700 cursor-pointer">
+                        <Label htmlFor="include-null-revenue" className="text-xs text-foreground cursor-pointer">
                           Include null/zero
                         </Label>
                       </div>
@@ -308,7 +308,7 @@ export function FiltersSidebar({
                         className="w-full"
                       />
                     </div>
-                    <div className="flex justify-between text-xs text-gray-500 px-2">
+                    <div className="flex justify-between text-xs text-muted-foreground px-2">
                       <span>{formatRevenueInMillions(revenueRange.min)}</span>
                       <span>{formatRevenueInMillions(revenueRange.max)}</span>
                     </div>
