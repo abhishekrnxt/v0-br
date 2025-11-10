@@ -63,7 +63,7 @@ export function ServicesTab({
           {services.length > 0 && (
             <div className="flex items-center justify-between mt-4">
               <div className="flex items-center gap-4">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Showing{" "}
                   {getPageInfo(currentPage, services.length, itemsPerPage).startItem} to{" "}
                   {getPageInfo(currentPage, services.length, itemsPerPage).endItem} of{" "}
@@ -89,7 +89,7 @@ export function ServicesTab({
                   >
                     Previous
                   </Button>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     Page {currentPage} of {getTotalPages(services.length, itemsPerPage)}
                   </span>
                   <Button

@@ -4,7 +4,7 @@ import type { Service } from "@/lib/types"
 
 export const ServiceRow = memo(({ service }: { service: Service }) => (
   <TableRow>
-    <TableCell className="text-xs text-gray-600">{service["CN UNIQUE KEY"]}</TableCell>
+    <TableCell className="text-xs text-muted-foreground">{service["CN UNIQUE KEY"]}</TableCell>
     <TableCell>{service["CENTER NAME"]}</TableCell>
     <TableCell>{service["PRIMARY SERVICE"]}</TableCell>
     <TableCell>{service["FOCUS REGION"]}</TableCell>

@@ -32,7 +32,7 @@ export const PieChartCard = memo(({ title, data, dataKey = "value" }: PieChartCa
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <PieChartIcon className="h-4 w-4 text-blue-600" />
+          <PieChartIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           {title}
         </CardTitle>
       </CardHeader>
@@ -60,7 +60,7 @@ export const PieChartCard = memo(({ title, data, dataKey = "value" }: PieChartCa
             </PieChart>
           </ChartContainer>
         ) : (
-          <div className="h-[300px] flex items-center justify-center text-gray-400">
+          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
             <p className="text-sm">No data available</p>
           </div>
         )}

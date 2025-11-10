@@ -94,7 +94,7 @@ export function MultiSelect({
                         <Checkbox checked={selected.includes(value)} disabled={disabled} className="h-4 w-4" />
                         <Check className={cn("h-4 w-4", selected.includes(value) ? "opacity-100" : "opacity-0")} />
                         <span className="flex-1">{value}</span>
-                        {count !== undefined && <span className="text-xs text-gray-500 ml-2">({count})</span>}
+                        {count !== undefined && <span className="text-xs text-muted-foreground ml-2">({count})</span>}
                       </div>
                     </CommandItem>
                   )

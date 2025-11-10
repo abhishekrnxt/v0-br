@@ -917,7 +917,7 @@ function DashboardContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header connectionStatus={connectionStatus} onRefresh={loadData} onClearCache={handleClearCache} />
 
       {dataLoaded && (
@@ -944,7 +944,7 @@ function DashboardContent() {
           />
 
           {/* Right Side - Data View (70%) */}
-          <div className="flex-1 w-[70%] overflow-y-auto bg-gray-50">
+          <div className="flex-1 w-[70%] overflow-y-auto bg-background">
             <div className="p-6">
               <SummaryCards
                 filteredAccountsCount={filteredData.filteredAccounts.length}

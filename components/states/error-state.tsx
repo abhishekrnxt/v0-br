@@ -15,14 +15,14 @@ export function ErrorState({ error, dbStatus, onRetry, onClearCache }: ErrorStat
   const isUrlMissing = dbStatus && !dbStatus.hasUrl
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl">
         <CardContent className="p-8">
           <div className="flex flex-col items-center text-center space-y-6">
-            <AlertCircle className="h-16 w-16 text-red-600" />
+            <AlertCircle className="h-16 w-16 text-red-600 dark:text-red-500" />
             <div>
-              <h2 className="text-2xl font-semibold mb-2 text-red-600">Database Configuration Error</h2>
-              <p className="text-gray-600 mb-4">{error}</p>
+              <h2 className="text-2xl font-semibold mb-2 text-red-600 dark:text-red-500">Database Configuration Error</h2>
+              <p className="text-muted-foreground mb-4">{error}</p>
             </div>
 
             {isUrlMissing && (
@@ -35,8 +35,8 @@ export function ErrorState({ error, dbStatus, onRetry, onClearCache }: ErrorStat
                   </AlertDescription>
                 </Alert>
 
-                <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                  <h3 className="font-semibold text-gray-900">Step-by-Step Setup:</h3>
+                <div className="bg-muted p-4 rounded-lg space-y-4">
+                  <h3 className="font-semibold text-foreground">Step-by-Step Setup:</h3>
 
                   <div className="space-y-3">
                     <div className="flex items-start space-x-3">
@@ -72,7 +72,7 @@ export function ErrorState({ error, dbStatus, onRetry, onClearCache }: ErrorStat
                       </div>
                       <div className="w-full">
                         <p className="font-medium mb-2">Add a new environment variable:</p>
-                        <div className="bg-white p-3 rounded border space-y-2">
+                        <div className="bg-card p-3 rounded border space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="font-mono text-sm">Name: DATABASE_URL</span>
                             <Button variant="ghost" size="sm" onClick={() => copyToClipboard("DATABASE_URL")}>
@@ -81,7 +81,7 @@ export function ErrorState({ error, dbStatus, onRetry, onClearCache }: ErrorStat
                           </div>
                           <div>
                             <span className="font-mono text-sm">Value: Your Neon connection string</span>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                               Format: postgresql://username:password@host/database?sslmode=require
                             </p>
                           </div>
@@ -111,29 +111,29 @@ export function ErrorState({ error, dbStatus, onRetry, onClearCache }: ErrorStat
             )}
 
             {dbStatus && (
-              <div className="w-full bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">Debug Information:</h4>
+              <div className="w-full bg-muted p-4 rounded-lg">
+                <h4 className="font-medium text-foreground mb-2">Debug Information:</h4>
                 <div className="text-sm space-y-1">
                   <div className="flex justify-between">
                     <span>Database URL:</span>
-                    <span className={dbStatus.hasUrl ? "text-green-600" : "text-red-600"}>
+                    <span className={dbStatus.hasUrl ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"}>
                       {dbStatus.hasUrl ? "✓ Configured" : "✗ Missing"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Connection:</span>
-                    <span className={dbStatus.hasConnection ? "text-green-600" : "text-red-600"}>
+                    <span className={dbStatus.hasConnection ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"}>
                       {dbStatus.hasConnection ? "✓ Initialized" : "✗ Failed"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Environment:</span>
-                    <span className="text-gray-600">{dbStatus.environment}</span>
+                    <span className="text-muted-foreground">{dbStatus.environment}</span>
                   </div>
                   {dbStatus.urlLength > 0 && (
                     <div className="flex justify-between">
                       <span>URL Length:</span>
-                      <span className="text-gray-600">{dbStatus.urlLength} chars</span>
+                      <span className="text-muted-foreground">{dbStatus.urlLength} chars</span>
                     </div>
                   )}
                 </div>

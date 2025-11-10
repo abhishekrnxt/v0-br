@@ -42,8 +42,8 @@ export function AccountsTab({
     <TabsContent value="accounts">
       {/* Header with View Toggle */}
       <div className="flex items-center gap-2 mb-4">
-        <PieChartIcon className="h-5 w-5 text-blue-600" />
-        <h2 className="text-lg font-semibold text-gray-900">Account Analytics</h2>
+        <PieChartIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        <h2 className="text-lg font-semibold text-foreground">Account Analytics</h2>
         <Badge variant="secondary" className="ml-2">
           {accounts.length} Accounts
         </Badge>
@@ -130,7 +130,7 @@ export function AccountsTab({
             {accounts.length > 0 && (
               <div className="flex items-center justify-between mt-4">
                 <div className="flex items-center gap-4">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     Showing{" "}
                     {getPageInfo(currentPage, accounts.length, itemsPerPage).startItem} to{" "}
                     {getPageInfo(currentPage, accounts.length, itemsPerPage).endItem} of{" "}
@@ -156,7 +156,7 @@ export function AccountsTab({
                     >
                       Previous
                     </Button>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-muted-foreground">
                       Page {currentPage} of {getTotalPages(accounts.length, itemsPerPage)}
                     </span>
                     <Button
