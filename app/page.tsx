@@ -117,11 +117,35 @@ function DashboardContent() {
   const [searchInput, setSearchInput] = useState("")
   const [accountsView, setAccountsView] = useState<"chart" | "data">("chart")
   const [centersView, setCentersView] = useState<"chart" | "data">("chart")
+  const [autoApplyEnabled, setAutoApplyEnabled] = useState(true)
+  const [accountsSortColumn, setAccountsSortColumn] = useState<string | null>(null)
+  const [accountsSortDirection, setAccountsSortDirection] = useState<"asc" | "desc">("asc")
+  const [centersSortColumn, setCentersSortColumn] = useState<string | null>(null)
+  const [centersSortDirection, setCentersSortDirection] = useState<"asc" | "desc">("asc")
+  const [servicesSortColumn, setServicesSortColumn] = useState<string | null>(null)
+  const [servicesSortDirection, setServicesSortDirection] = useState<"asc" | "desc">("asc")
 
   // Load data from database on component mount
   useEffect(() => {
     loadData()
   }, [])
+
+  // Auto-apply filters with debounce
+  useEffect(() => {
+    if (!autoApplyEnabled) return
+
+    const autoApplyTimeout = setTimeout(() => {
+      if (JSON.stringify(filters) !== JSON.stringify(pendingFilters)) {
+        setIsApplying(true)
+        setTimeout(() => {
+          setFilters(pendingFilters)
+          setIsApplying(false)
+        }, 0)
+      }
+    }, 800) // 800ms debounce delay
+
+    return () => clearTimeout(autoApplyTimeout)
+  }, [pendingFilters, filters, autoApplyEnabled])
 
   // Debounced search handler
   const debouncedSearch = useCallback(
@@ -878,6 +902,34 @@ function DashboardContent() {
     setSearchInput(savedFilters.searchTerm)
   }
 
+  // Sorting handlers
+  const handleAccountsSort = (column: string) => {
+    if (accountsSortColumn === column) {
+      setAccountsSortDirection(accountsSortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setAccountsSortColumn(column)
+      setAccountsSortDirection("asc")
+    }
+  }
+
+  const handleCentersSort = (column: string) => {
+    if (centersSortColumn === column) {
+      setCentersSortDirection(centersSortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setCentersSortColumn(column)
+      setCentersSortDirection("asc")
+    }
+  }
+
+  const handleServicesSort = (column: string) => {
+    if (servicesSortColumn === column) {
+      setServicesSortDirection(servicesSortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setServicesSortColumn(column)
+      setServicesSortDirection("asc")
+    }
+  }
+
   const handleExportAll = () => {
     exportAll(
       filteredData.filteredAccounts,
@@ -929,6 +981,7 @@ function DashboardContent() {
             searchInput={searchInput}
             isApplying={isApplying}
             revenueRange={revenueRange}
+            autoApplyEnabled={autoApplyEnabled}
             setPendingFilters={setPendingFilters}
             applyFilters={applyFilters}
             resetFilters={resetFilters}
@@ -936,6 +989,7 @@ function DashboardContent() {
             handleSearchChange={handleSearchChange}
             handleMinRevenueChange={handleMinRevenueChange}
             handleMaxRevenueChange={handleMaxRevenueChange}
+            setAutoApplyEnabled={setAutoApplyEnabled}
             getTotalActiveFilters={getTotalActiveFilters}
             getTotalPendingFilters={getTotalPendingFilters}
             hasUnappliedChanges={hasUnappliedChanges}
@@ -972,6 +1026,11 @@ function DashboardContent() {
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}
                 itemsPerPage={itemsPerPage}
+                sortColumn={accountsSortColumn}
+                sortDirection={accountsSortDirection}
+                onSort={handleAccountsSort}
+                onResetFilters={resetFilters}
+                hasActiveFilters={getTotalActiveFilters() > 0}
               />
 
               <CentersTab
@@ -983,6 +1042,8 @@ function DashboardContent() {
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}
                 itemsPerPage={itemsPerPage}
+                onResetFilters={resetFilters}
+                hasActiveFilters={getTotalActiveFilters() > 0}
               />
 
               <ServicesTab
@@ -990,6 +1051,8 @@ function DashboardContent() {
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}
                 itemsPerPage={itemsPerPage}
+                onResetFilters={resetFilters}
+                hasActiveFilters={getTotalActiveFilters() > 0}
               />
             </Tabs>
             </div>

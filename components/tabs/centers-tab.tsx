@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TabsContent } from "@/components/ui/tabs"
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Download, PieChartIcon, Table as TableIcon } from "lucide-react"
+import { Download, PieChartIcon, Table as TableIcon, Filter } from "lucide-react"
 import { CenterRow } from "@/components/tables"
 import { PieChartCard } from "@/components/charts/pie-chart-card"
+import { EmptyState } from "@/components/states/empty-state"
 import { getPaginatedData, getTotalPages, getPageInfo } from "@/lib/utils/helpers"
 import { exportToExcel } from "@/lib/utils/export-helpers"
 import type { Center, Function } from "@/lib/types"
@@ -27,6 +28,8 @@ interface CentersTabProps {
   currentPage: number
   setCurrentPage: (page: number | ((prev: number) => number)) => void
   itemsPerPage: number
+  onResetFilters?: () => void
+  hasActiveFilters?: boolean
 }
 
 export function CentersTab({
@@ -37,6 +40,8 @@ export function CentersTab({
   currentPage,
   setCurrentPage,
   itemsPerPage,
+  onResetFilters,
+  hasActiveFilters = false,
 }: CentersTabProps) {
   return (
     <TabsContent value="centers">
@@ -100,33 +105,48 @@ export function CentersTab({
             <CardTitle>Centers Data</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Center Name</TableHead>
-                    <TableHead>CN Unique Key</TableHead>
-                    <TableHead>Account Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>City</TableHead>
-                    <TableHead>State</TableHead>
-                    <TableHead>Country</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Employees</TableHead>
-                    <TableHead>Employees Range</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {getPaginatedData(centers, currentPage, itemsPerPage).map(
-                    (center, index) => (
-                      <CenterRow key={`${center["CN UNIQUE KEY"]}-${index}`} center={center} />
-                    )
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            {centers.length > 0 && (
-              <div className="flex items-center justify-between mt-4">
+            {centers.length === 0 ? (
+              <EmptyState
+                title="No centers found"
+                description="No centers match your current filter criteria."
+                icon={<Filter className="h-12 w-12 text-muted-foreground" />}
+                hasActiveFilters={hasActiveFilters}
+                onResetFilters={onResetFilters}
+                suggestions={[
+                  "Try removing some filters to see more results",
+                  "Adjust the center type or location filters",
+                  "Check if function filters are too restrictive",
+                  "Clear any active search terms"
+                ]}
+              />
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Center Name</TableHead>
+                        <TableHead>CN Unique Key</TableHead>
+                        <TableHead>Account Name</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>City</TableHead>
+                        <TableHead>State</TableHead>
+                        <TableHead>Country</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Employees</TableHead>
+                        <TableHead>Employees Range</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {getPaginatedData(centers, currentPage, itemsPerPage).map(
+                        (center, index) => (
+                          <CenterRow key={`${center["CN UNIQUE KEY"]}-${index}`} center={center} />
+                        )
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="flex items-center justify-between mt-4">
                 <div className="flex items-center gap-4">
                   <p className="text-sm text-muted-foreground">
                     Showing{" "}
@@ -174,6 +194,7 @@ export function CentersTab({
                   </div>
                 )}
               </div>
+              </>
             )}
           </CardContent>
         </Card>

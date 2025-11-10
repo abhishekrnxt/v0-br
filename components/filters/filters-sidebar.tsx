@@ -27,6 +27,7 @@ interface FiltersSidebarProps {
   searchInput: string
   isApplying: boolean
   revenueRange: { min: number; max: number }
+  autoApplyEnabled?: boolean
 
   // Callback functions
   setPendingFilters: React.Dispatch<React.SetStateAction<Filters>>
@@ -36,6 +37,7 @@ interface FiltersSidebarProps {
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   handleMinRevenueChange: (value: string) => void
   handleMaxRevenueChange: (value: string) => void
+  setAutoApplyEnabled?: (enabled: boolean) => void
 
   // Helper functions
   getTotalActiveFilters: () => number
@@ -52,6 +54,7 @@ export function FiltersSidebar({
   searchInput,
   isApplying,
   revenueRange,
+  autoApplyEnabled = true,
   setPendingFilters,
   applyFilters,
   resetFilters,
@@ -59,6 +62,7 @@ export function FiltersSidebar({
   handleSearchChange,
   handleMinRevenueChange,
   handleMaxRevenueChange,
+  setAutoApplyEnabled,
   getTotalActiveFilters,
   getTotalPendingFilters,
   hasUnappliedChanges,
@@ -76,37 +80,58 @@ export function FiltersSidebar({
             {getTotalActiveFilters() > 0 && (
               <Badge variant="secondary" className="ml-auto">{getTotalActiveFilters()} active</Badge>
             )}
-            {hasUnappliedChanges() && (
+            {hasUnappliedChanges() && !autoApplyEnabled && (
               <Badge variant="outline" className="text-orange-600 border-orange-600">
                 Pending
               </Badge>
             )}
+            {autoApplyEnabled && hasUnappliedChanges() && (
+              <Badge variant="outline" className="text-blue-600 border-blue-600">
+                Auto-applying...
+              </Badge>
+            )}
           </div>
+          {setAutoApplyEnabled && (
+            <div className="flex items-center space-x-2 text-xs">
+              <input
+                type="checkbox"
+                id="auto-apply"
+                checked={autoApplyEnabled}
+                onChange={(e) => setAutoApplyEnabled(e.target.checked)}
+                className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-border rounded"
+              />
+              <Label htmlFor="auto-apply" className="text-xs text-muted-foreground cursor-pointer">
+                Auto-apply filters (800ms delay)
+              </Label>
+            </div>
+          )}
           <div className="flex flex-col gap-2">
             <SavedFiltersManager
               currentFilters={filters}
               onLoadFilters={handleLoadSavedFilters}
               totalActiveFilters={getTotalActiveFilters()}
             />
-            <Button
-              variant="default"
-              size="sm"
-              onClick={applyFilters}
-              disabled={!hasUnappliedChanges() || isApplying}
-              className="w-full flex items-center justify-center gap-2"
-            >
-              {isApplying ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Applying...
-                </>
-              ) : (
-                <>
-                  <Filter className="h-4 w-4" />
-                  Apply Filters {getTotalPendingFilters() > 0 && `(${getTotalPendingFilters()})`}
-                </>
-              )}
-            </Button>
+            {!autoApplyEnabled && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={applyFilters}
+                disabled={!hasUnappliedChanges() || isApplying}
+                className="w-full flex items-center justify-center gap-2"
+              >
+                {isApplying ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Applying...
+                  </>
+                ) : (
+                  <>
+                    <Filter className="h-4 w-4" />
+                    Apply Filters {getTotalPendingFilters() > 0 && `(${getTotalPendingFilters()})`}
+                  </>
+                )}
+              </Button>
+            )}
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={resetFilters} className="flex-1">
                 <RotateCcw className="h-4 w-4 mr-2" />
