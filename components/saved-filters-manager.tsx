@@ -139,7 +139,7 @@ const SavedFilterCard = memo(({
             </Button>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-sm text-gray-500">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
             Created: {new Date(filter.created_at).toLocaleDateString()}
@@ -388,8 +388,8 @@ export const SavedFiltersManager = memo(function SavedFiltersManager({
                 onChange={(e) => setFilterName(e.target.value)}
               />
             </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-2">Current Filters Summary:</p>
+            <div className="bg-muted p-3 rounded-lg">
+              <p className="text-sm font-medium text-foreground mb-2">Current Filters Summary:</p>
               <Badge variant="secondary">{totalActiveFilters} active filters</Badge>
             </div>
           </div>
@@ -415,12 +415,12 @@ export const SavedFiltersManager = memo(function SavedFiltersManager({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-80">
-            <div className="px-2 py-1.5 text-sm font-medium text-gray-700">Saved Filter Sets</div>
+            <div className="px-2 py-1.5 text-sm font-medium text-foreground">Saved Filter Sets</div>
             <DropdownMenuSeparator />
             {savedFilters.map((filter) => (
               <DropdownMenuItem key={filter.id} className="flex items-center justify-between p-0">
                 <button
-                  className="flex-1 flex items-center justify-between px-2 py-1.5 hover:bg-gray-50 rounded text-left"
+                  className="flex-1 flex items-center justify-between px-2 py-1.5 hover:bg-muted rounded text-left"
                   onClick={() => handleLoadFilter(filter)}
                 >
                   <div className="flex items-center gap-2">
@@ -448,7 +448,7 @@ export const SavedFiltersManager = memo(function SavedFiltersManager({
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start text-gray-600"
+                className="w-full justify-start text-muted-foreground"
                 onClick={() => setManageDialogOpen(true)}
               >
                 <Settings className="h-4 w-4 mr-2" />

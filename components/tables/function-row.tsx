@@ -4,7 +4,7 @@ import type { Function } from "@/lib/types"
 
 export const FunctionRow = memo(({ func }: { func: Function }) => (
   <TableRow>
-    <TableCell className="text-xs text-gray-600">{func["CN UNIQUE KEY"]}</TableCell>
+    <TableCell className="text-xs text-muted-foreground">{func["CN UNIQUE KEY"]}</TableCell>
     <TableCell>{func["FUNCTION"]}</TableCell>
   </TableRow>
 ))
