@@ -447,7 +447,6 @@ function DashboardContent() {
         accountNasscomStatuses: [],
         accountEmployeesRanges: [],
         accountCenterEmployees: [],
-        accountNames: [],
         centerTypes: [],
         centerFocus: [],
         centerCities: [],
@@ -469,7 +468,6 @@ function DashboardContent() {
       nasscomStatuses: new Map<string, number>(),
       employeesRanges: new Map<string, number>(),
       centerEmployees: new Map<string, number>(),
-      names: new Map<string, number>(),
     }
 
     const validAccountNames = new Set<string>()
@@ -618,19 +616,6 @@ function DashboardContent() {
       ) {
         accountCounts.centerEmployees.set(centerEmp, (accountCounts.centerEmployees.get(centerEmp) || 0) + 1)
       }
-      if (
-        matchesCountry &&
-        matchesRegion &&
-        matchesIndustry &&
-        matchesSubIndustry &&
-        matchesCategory &&
-        matchesNature &&
-        matchesNasscom &&
-        matchesEmpRange &&
-        matchesCenterEmp
-      ) {
-        accountCounts.names.set(accountName, (accountCounts.names.get(accountName) || 0) + 1)
-      }
 
       if (
         matchesCountry &&
@@ -727,11 +712,6 @@ function DashboardContent() {
         .sort((a, b) => b.count - a.count)
     }
 
-    // Sort account names alphabetically instead of by count
-    const accountNamesArray = Array.from(accountCounts.names.entries())
-      .map(([value, count]) => ({ value, count }))
-      .sort((a, b) => a.value.localeCompare(b.value))
-
     return {
       accountCountries: mapToSortedArray(accountCounts.countries),
       accountRegions: mapToSortedArray(accountCounts.regions),
@@ -742,7 +722,6 @@ function DashboardContent() {
       accountNasscomStatuses: mapToSortedArray(accountCounts.nasscomStatuses),
       accountEmployeesRanges: mapToSortedArray(accountCounts.employeesRanges),
       accountCenterEmployees: mapToSortedArray(accountCounts.centerEmployees),
-      accountNames: accountNamesArray,
       centerTypes: mapToSortedArray(centerCounts.types),
       centerFocus: mapToSortedArray(centerCounts.focus),
       centerCities: mapToSortedArray(centerCounts.cities),
@@ -753,6 +732,11 @@ function DashboardContent() {
       functionTypes: mapToSortedArray(functionCounts),
     }
   }, [accounts, centers, functions, filters])
+
+  // Get all unique account names for the searchable multi-select
+  const allAccountNames = useMemo(() => {
+    return Array.from(new Set(accounts.map((account) => account["ACCOUNT NAME"]))).sort()
+  }, [accounts])
 
   const resetFilters = () => {
     const emptyFilters = {
@@ -890,6 +874,7 @@ function DashboardContent() {
           <FiltersSidebar
             filters={filters}
             availableOptions={availableOptions}
+            allAccountNames={allAccountNames}
             revenueRange={revenueRange}
             setFilters={setFilters}
             resetFilters={resetFilters}

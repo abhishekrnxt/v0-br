@@ -16,6 +16,7 @@ import {
   Briefcase,
 } from "lucide-react"
 import { MultiSelect } from "@/components/multi-select"
+import { SearchableMultiSelect } from "@/components/searchable-multi-select"
 import { SavedFiltersManager } from "@/components/saved-filters-manager"
 import type { Filters, AvailableOptions } from "@/lib/types"
 
@@ -23,6 +24,7 @@ interface FiltersSidebarProps {
   // State values
   filters: Filters
   availableOptions: AvailableOptions
+  allAccountNames: string[]
   revenueRange: { min: number; max: number }
 
   // Callback functions
@@ -41,6 +43,7 @@ interface FiltersSidebarProps {
 export function FiltersSidebar({
   filters,
   availableOptions,
+  allAccountNames,
   revenueRange,
   setFilters,
   resetFilters,
@@ -96,12 +99,14 @@ export function FiltersSidebar({
               <div className="space-y-4 pt-2">
                 {/* Account Names Multi-Select */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium">Account Names ({availableOptions.accountNames?.length || 0})</Label>
-                  <MultiSelect
-                    options={availableOptions.accountNames || []}
+                  <Label className="text-xs font-medium">Account Names</Label>
+                  <SearchableMultiSelect
+                    allItems={allAccountNames}
                     selected={filters.selectedAccountNames}
                     onChange={(selected) => setFilters((prev) => ({ ...prev, selectedAccountNames: selected }))}
                     placeholder="Select accounts..."
+                    searchPlaceholder="Try searching accounts..."
+                    maxResults={50}
                   />
                 </div>
 
