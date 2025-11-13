@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useMemo, useState } from "react"
-import Map, { Layer, Source } from "react-map-gl"
+import { Map, Source, Layer } from "react-map-gl"
 import type { Center } from "@/lib/types"
 import "mapbox-gl/dist/mapbox-gl.css"
 
