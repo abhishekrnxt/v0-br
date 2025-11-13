@@ -81,6 +81,7 @@ export interface Filters {
   accountCenterEmployees: string[]
   accountRevenueRange: [number, number]
   includeNullRevenue: boolean
+  accountNameKeywords: string[]
   centerTypes: string[]
   centerFocus: string[]
   centerCities: string[]

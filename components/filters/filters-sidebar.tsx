@@ -148,6 +148,18 @@ export function FiltersSidebar({
                   )}
                 </div>
 
+                {/* Account Name Keywords */}
+                <div className="space-y-2 pb-4 border-b border-border">
+                  <Label className="text-xs font-medium">Account Name Keywords</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Add keywords to search in account names (press Enter to add)
+                  </p>
+                  <TitleKeywordInput
+                    keywords={pendingFilters.accountNameKeywords}
+                    onChange={(keywords) => setPendingFilters((prev) => ({ ...prev, accountNameKeywords: keywords }))}
+                  />
+                </div>
+
                 {/* Account Filters */}
                 <div className="space-y-3">
                   <div className="space-y-2">

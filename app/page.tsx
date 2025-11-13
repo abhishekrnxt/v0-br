@@ -81,6 +81,7 @@ function DashboardContent() {
     accountCenterEmployees: [],
     accountRevenueRange: [0, 1000000],
     includeNullRevenue: false,
+    accountNameKeywords: [],
     centerTypes: [],
     centerFocus: [],
     centerCities: [],
@@ -107,6 +108,7 @@ function DashboardContent() {
     accountCenterEmployees: [],
     accountRevenueRange: [0, 1000000],
     includeNullRevenue: false,
+    accountNameKeywords: [],
     centerTypes: [],
     centerFocus: [],
     centerCities: [],
@@ -301,6 +303,13 @@ function DashboardContent() {
 
     // Step 1: Filter accounts based on account filters
     let filteredAccounts = accounts.filter((account) => {
+      // Check if account name contains any of the keywords (OR condition)
+      const accountNameKeywordMatch =
+        filters.accountNameKeywords.length === 0 ||
+        filters.accountNameKeywords.some((keyword) =>
+          account["ACCOUNT NAME"].toLowerCase().includes(keyword.toLowerCase())
+        )
+
       return (
         arrayFilterMatch(filters.accountCountries, account["ACCOUNT COUNTRY"]) &&
         arrayFilterMatch(filters.accountRegions, account["ACCOUNT REGION"]) &&
@@ -312,6 +321,7 @@ function DashboardContent() {
         arrayFilterMatch(filters.accountEmployeesRanges, account["ACCOUNT EMPLOYEES RANGE"]) &&
         arrayFilterMatch(filters.accountCenterEmployees, account["ACCOUNT CENTER EMPLOYEES"]) &&
         rangeFilterMatch(filters.accountRevenueRange, account["ACCOUNT REVNUE"], filters.includeNullRevenue) &&
+        accountNameKeywordMatch &&
         (filters.searchTerm === "" || account["ACCOUNT NAME"].toLowerCase().includes(filters.searchTerm.toLowerCase()))
       )
     })
@@ -437,6 +447,7 @@ function DashboardContent() {
     filters.accountCenterEmployees,
     filters.accountRevenueRange,
     filters.includeNullRevenue,
+    filters.accountNameKeywords,
     filters.centerTypes,
     filters.centerFocus,
     filters.centerCities,
@@ -918,6 +929,7 @@ function DashboardContent() {
       accountCenterEmployees: [],
       accountRevenueRange: [revenueRange.min, revenueRange.max] as [number, number],
       includeNullRevenue: false,
+      accountNameKeywords: [],
       centerTypes: [],
       centerFocus: [],
       centerCities: [],
@@ -953,6 +965,7 @@ function DashboardContent() {
         ? 1
         : 0) +
       (pendingFilters.includeNullRevenue ? 1 : 0) +
+      pendingFilters.accountNameKeywords.length +
       pendingFilters.centerTypes.length +
       pendingFilters.centerFocus.length +
       pendingFilters.centerCities.length +
@@ -988,6 +1001,7 @@ function DashboardContent() {
         ? 1
         : 0) +
       (filters.includeNullRevenue ? 1 : 0) +
+      filters.accountNameKeywords.length +
       filters.centerTypes.length +
       filters.centerFocus.length +
       filters.centerCities.length +
