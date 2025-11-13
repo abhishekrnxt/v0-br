@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TabsContent } from "@/components/ui/tabs"
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Download, PieChartIcon, Table as TableIcon } from "lucide-react"
+import { Download, PieChartIcon, Table as TableIcon, MapIcon } from "lucide-react"
 import { CenterRow } from "@/components/tables"
 import { PieChartCard } from "@/components/charts/pie-chart-card"
 import { EmptyState } from "@/components/states/empty-state"
 import { getPaginatedData, getTotalPages, getPageInfo } from "@/lib/utils/helpers"
 import { exportToExcel } from "@/lib/utils/export-helpers"
+import { CentersMap } from "@/components/maps/centers-map"
+import { MapErrorBoundary } from "@/components/maps/map-error-boundary"
 import type { Center, Function } from "@/lib/types"
 
 interface CentersTabProps {
@@ -23,8 +25,8 @@ interface CentersTabProps {
     cityData: Array<{ name: string; value: number; fill?: string }>
     functionData: Array<{ name: string; value: number; fill?: string }>
   }
-  centersView: "chart" | "data"
-  setCentersView: (view: "chart" | "data") => void
+  centersView: "chart" | "data" | "map"
+  setCentersView: (view: "chart" | "data" | "map") => void
   currentPage: number
   setCurrentPage: (page: number | ((prev: number) => number)) => void
   itemsPerPage: number
@@ -68,6 +70,15 @@ export function CentersTab({
             Charts
           </Button>
           <Button
+            variant={centersView === "map" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setCentersView("map")}
+            className="flex items-center gap-2"
+          >
+            <MapIcon className="h-4 w-4" />
+            Map
+          </Button>
+          <Button
             variant={centersView === "data" ? "default" : "outline"}
             size="sm"
             onClick={() => setCentersView("data")}
@@ -100,6 +111,15 @@ export function CentersTab({
               data={centerChartData.functionData}
             />
           </div>
+        </div>
+      )}
+
+      {/* Map Section */}
+      {centersView === "map" && (
+        <div className="mb-6">
+          <MapErrorBoundary>
+            <CentersMap centers={centers} />
+          </MapErrorBoundary>
         </div>
       )}
 

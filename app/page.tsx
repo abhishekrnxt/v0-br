@@ -128,7 +128,7 @@ function DashboardContent() {
   const [isApplying, setIsApplying] = useState(false)
   const [searchInput, setSearchInput] = useState("")
   const [accountsView, setAccountsView] = useState<"chart" | "data">("chart")
-  const [centersView, setCentersView] = useState<"chart" | "data">("chart")
+  const [centersView, setCentersView] = useState<"chart" | "data" | "map">("chart")
   const [prospectsView, setProspectsView] = useState<"chart" | "data">("chart")
 
   // Load data from database on component mount

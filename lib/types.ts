@@ -27,6 +27,8 @@ export interface Center {
   "CENTER COUNTRY": string
   "CENTER EMPLOYEES": string
   "CENTER EMPLOYEES RANGE": string
+  LAT?: string
+  LANG?: string
 }
 
 export interface Function {

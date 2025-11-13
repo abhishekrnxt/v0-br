@@ -28,3 +28,25 @@ Continue building your app on:
 2. Deploy your chats from the v0 interface
 3. Changes are automatically pushed to this repository
 4. Vercel deploys the latest version from this repository
+
+## Environment Variables
+
+To run this project, you need to set up the following environment variables:
+
+### Mapbox Configuration
+
+The Centers tab includes a map visualization powered by Mapbox. You need to:
+
+1. Get your Mapbox access token from [https://account.mapbox.com/access-tokens/](https://account.mapbox.com/access-tokens/)
+2. Add the token to your Vercel environment variables:
+   - Go to your Vercel project settings
+   - Navigate to "Environment Variables"
+   - Add: `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` with your token value
+
+For local development, create a `.env.local` file in the root directory:
+
+```bash
+NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_access_token_here
+```
+
+The map uses a custom Mapbox style: `mapbox://styles/abhishekfx/cltyaz9ek00nx01p783ygdi9z`
