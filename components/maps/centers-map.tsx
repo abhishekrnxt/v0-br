@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useMemo, useState, useEffect } from "react"
-import { Map as MapGL, Source, Layer } from "react-map-gl/mapbox"
+import React, { useMemo, useState, useEffect, useRef } from "react"
+import { Map as MapGL, Source, Layer, NavigationControl, FullscreenControl, GeolocateControl } from "react-map-gl/mapbox"
+import type { MapRef } from "react-map-gl/mapbox"
 import type { Center } from "@/lib/types"
 import "mapbox-gl/dist/mapbox-gl.css"
 
@@ -20,6 +21,7 @@ export function CentersMap({ centers }: CentersMapProps) {
   const [hoveredCity, setHoveredCity] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isClient, setIsClient] = useState(false)
+  const mapRef = useRef<MapRef>(null)
 
   useEffect(() => {
     setIsClient(true)
@@ -115,6 +117,17 @@ export function CentersMap({ centers }: CentersMapProps) {
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
 
+  // Function to reset map to initial view
+  const handleRecenter = () => {
+    if (mapRef.current) {
+      mapRef.current.flyTo({
+        center: [initialViewState.longitude, initialViewState.latitude],
+        zoom: initialViewState.zoom,
+        duration: 1000,
+      })
+    }
+  }
+
   // Show error if any
   if (error) {
     return (
@@ -175,6 +188,7 @@ export function CentersMap({ centers }: CentersMapProps) {
     return (
       <div className="relative w-full h-[600px] rounded-lg overflow-hidden border">
         <MapGL
+        ref={mapRef}
         initialViewState={initialViewState}
         mapStyle="mapbox://styles/abhishekfx/cltyaz9ek00nx01p783ygdi9z"
         mapboxAccessToken={mapboxToken}
@@ -195,6 +209,19 @@ export function CentersMap({ centers }: CentersMapProps) {
           setError(`Map error: ${e.error?.message || "Unknown error"}`)
         }}
       >
+        {/* Navigation Controls - Zoom and Rotation */}
+        <NavigationControl position="top-left" showCompass={true} showZoom={true} />
+
+        {/* Fullscreen Control */}
+        <FullscreenControl position="top-left" />
+
+        {/* Geolocate Control - Find user's location */}
+        <GeolocateControl
+          position="top-left"
+          trackUserLocation={false}
+          showUserHeading={true}
+        />
+
         <Source id="centers" type="geojson" data={geojsonData}>
           {/* Circle layer */}
           <Layer
@@ -244,6 +271,33 @@ export function CentersMap({ centers }: CentersMapProps) {
           </div>
         )}
       </MapGL>
+
+      {/* Custom Recenter Button */}
+      <button
+        onClick={handleRecenter}
+        className="absolute top-[200px] left-2 bg-background border rounded shadow-md p-2 hover:bg-accent transition-colors z-10 flex items-center gap-2"
+        title="Reset map to initial view"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="1" />
+          <path d="M12 2v4" />
+          <path d="M12 18v4" />
+          <path d="M2 12h4" />
+          <path d="M18 12h4" />
+        </svg>
+        <span className="text-xs font-medium">Recenter</span>
+      </button>
 
       {/* Legend */}
       <div className="absolute bottom-4 right-4 bg-background border rounded-lg shadow-lg px-4 py-3 z-10">
