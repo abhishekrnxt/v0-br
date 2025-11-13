@@ -157,6 +157,7 @@ export function FiltersSidebar({
                   <TitleKeywordInput
                     keywords={pendingFilters.accountNameKeywords}
                     onChange={(keywords) => setPendingFilters((prev) => ({ ...prev, accountNameKeywords: keywords }))}
+                    placeholder="e.g., 3M, ABB, Google..."
                   />
                 </div>
 
@@ -470,6 +471,7 @@ export function FiltersSidebar({
                     <TitleKeywordInput
                       keywords={pendingFilters.prospectTitleKeywords}
                       onChange={(keywords) => setPendingFilters((prev) => ({ ...prev, prospectTitleKeywords: keywords }))}
+                      placeholder="e.g., Manager, Director, VP..."
                     />
                   </div>
                 </div>
@@ -483,7 +485,7 @@ export function FiltersSidebar({
 }
 
 // Title Keyword Input Component
-function TitleKeywordInput({ keywords, onChange }: { keywords: string[]; onChange: (keywords: string[]) => void }) {
+function TitleKeywordInput({ keywords, onChange, placeholder = "e.g., Manager, Director, VP..." }: { keywords: string[]; onChange: (keywords: string[]) => void; placeholder?: string }) {
   const [inputValue, setInputValue] = useState("")
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -505,7 +507,7 @@ function TitleKeywordInput({ keywords, onChange }: { keywords: string[]; onChang
     <div className="space-y-2">
       <Input
         type="text"
-        placeholder="e.g., Manager, Director, VP..."
+        placeholder={placeholder}
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
