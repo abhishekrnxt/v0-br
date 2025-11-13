@@ -297,7 +297,8 @@ function DashboardContent() {
       return numValue >= range[0] && numValue <= range[1]
     }
 
-    const filteredAccounts = accounts.filter((account) => {
+    // Step 1: Filter accounts based on account filters
+    let filteredAccounts = accounts.filter((account) => {
       return (
         arrayFilterMatch(filters.accountCountries, account["ACCOUNT COUNTRY"]) &&
         arrayFilterMatch(filters.accountRegions, account["ACCOUNT REGION"]) &&
@@ -313,8 +314,9 @@ function DashboardContent() {
       )
     })
 
-    const filteredAccountNames = filteredAccounts.map((a) => a["ACCOUNT NAME"])
+    let filteredAccountNames = filteredAccounts.map((a) => a["ACCOUNT NAME"])
 
+    // Step 2: Filter centers based on center filters and filtered accounts
     let filteredCenters = centers.filter((center) => {
       const centerFilterMatch =
         arrayFilterMatch(filters.centerTypes, center["CENTER TYPE"]) &&
@@ -331,6 +333,7 @@ function DashboardContent() {
       return centerFilterMatch && accountFilterMatch
     })
 
+    // Step 3: Filter functions based on function filters and filtered centers
     let filteredFunctions = functions.filter((func) => {
       const functionFilterMatch = arrayFilterMatch(filters.functionTypes, func["FUNCTION"])
       const filteredCenterKeys = filteredCenters.map((c) => c["CN UNIQUE KEY"])
@@ -339,6 +342,7 @@ function DashboardContent() {
       return functionFilterMatch && centerRelationMatch
     })
 
+    // Step 4: If function filters are applied, filter centers back to only those with matching functions
     if (filters.functionTypes.length > 0) {
       const centerKeysWithMatchingFunctions = filteredFunctions.map((f) => f["CN UNIQUE KEY"])
       filteredCenters = filteredCenters.filter((center) =>
@@ -346,18 +350,8 @@ function DashboardContent() {
       )
     }
 
-    const finalCenterKeys = filteredCenters.map((c) => c["CN UNIQUE KEY"])
-    filteredFunctions = filteredFunctions.filter((func) => finalCenterKeys.includes(func["CN UNIQUE KEY"]))
-
-    const filteredServices = services.filter((service) => finalCenterKeys.includes(service["CN UNIQUE KEY"]))
-
-    const finalAccountNames = [...new Set(filteredCenters.map((c) => c["ACCOUNT NAME"]))]
-    const finalFilteredAccounts = filteredAccounts.filter((account) =>
-      finalAccountNames.includes(account["ACCOUNT NAME"])
-    )
-
-    // Filter prospects based on account names and prospect-specific filters
-    const filteredProspects = prospects.filter((prospect) => {
+    // Step 5: Filter prospects based on prospect filters and filtered accounts
+    let filteredProspects = prospects.filter((prospect) => {
       const prospectFilterMatch =
         arrayFilterMatch(filters.prospectDepartments, prospect.DEPARTMENT) &&
         arrayFilterMatch(filters.prospectLevels, prospect.LEVEL) &&
@@ -365,17 +359,55 @@ function DashboardContent() {
         (filters.searchTerm === "" || prospect.TITLE.toLowerCase().includes(filters.searchTerm.toLowerCase()))
 
       const accountFilterMatch =
-        finalAccountNames.length === accounts.length || finalAccountNames.includes(prospect["ACCOUNT NAME"])
+        filteredAccountNames.length === accounts.length || filteredAccountNames.includes(prospect["ACCOUNT NAME"])
 
       return prospectFilterMatch && accountFilterMatch
     })
+
+    // Step 6: If prospect filters are applied, filter accounts back to only those with matching prospects
+    const hasProspectFilters =
+      filters.prospectDepartments.length > 0 ||
+      filters.prospectLevels.length > 0 ||
+      filters.prospectCities.length > 0
+
+    if (hasProspectFilters) {
+      const accountNamesWithMatchingProspects = [...new Set(filteredProspects.map((p) => p["ACCOUNT NAME"]))]
+      filteredAccounts = filteredAccounts.filter((account) =>
+        accountNamesWithMatchingProspects.includes(account["ACCOUNT NAME"])
+      )
+
+      // Update filtered account names after prospect filtering
+      filteredAccountNames = filteredAccounts.map((a) => a["ACCOUNT NAME"])
+
+      // Re-filter centers based on the updated accounts
+      filteredCenters = filteredCenters.filter((center) =>
+        filteredAccountNames.includes(center["ACCOUNT NAME"])
+      )
+    }
+
+    // Step 7: Finalize center keys and re-filter functions and services
+    const finalCenterKeys = filteredCenters.map((c) => c["CN UNIQUE KEY"])
+    filteredFunctions = filteredFunctions.filter((func) => finalCenterKeys.includes(func["CN UNIQUE KEY"]))
+
+    const filteredServices = services.filter((service) => finalCenterKeys.includes(service["CN UNIQUE KEY"]))
+
+    // Step 8: Final account filtering based on centers that made it through
+    const finalAccountNames = [...new Set(filteredCenters.map((c) => c["ACCOUNT NAME"]))]
+    const finalFilteredAccounts = filteredAccounts.filter((account) =>
+      finalAccountNames.includes(account["ACCOUNT NAME"])
+    )
+
+    // Step 9: Final prospect filtering based on final accounts
+    const finalFilteredProspects = filteredProspects.filter((prospect) =>
+      finalAccountNames.includes(prospect["ACCOUNT NAME"])
+    )
 
     return {
       filteredAccounts: finalFilteredAccounts,
       filteredCenters,
       filteredFunctions,
       filteredServices,
-      filteredProspects,
+      filteredProspects: finalFilteredProspects,
     }
   }, [
     accounts,
