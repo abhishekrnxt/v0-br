@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react"
-import { Map, Source, Layer } from "react-map-gl/mapbox"
+import { Map as MapGL, Source, Layer } from "react-map-gl/mapbox"
 import type { Center } from "@/lib/types"
 import "mapbox-gl/dist/mapbox-gl.css"
 
@@ -174,7 +174,7 @@ export function CentersMap({ centers }: CentersMapProps) {
   try {
     return (
       <div className="relative w-full h-[600px] rounded-lg overflow-hidden border">
-        <Map
+        <MapGL
         initialViewState={initialViewState}
         mapStyle="mapbox://styles/abhishekfx/cltyaz9ek00nx01p783ygdi9z"
         mapboxAccessToken={mapboxToken}
@@ -242,7 +242,7 @@ export function CentersMap({ centers }: CentersMapProps) {
             </div>
           </div>
         )}
-      </Map>
+      </MapGL>
 
       {/* Legend */}
       <div className="absolute bottom-4 right-4 bg-background border rounded-lg shadow-lg px-4 py-3 z-10">
