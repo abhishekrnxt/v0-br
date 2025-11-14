@@ -146,30 +146,6 @@ export function ProspectDetailsDialog({
               />
             </div>
           </div>
-
-          {/* Quick Actions Section */}
-          <div className="flex gap-3 pt-4 border-t border-border/50">
-            {prospect.EMAIL && (
-              <a
-                href={`mailto:${prospect.EMAIL}`}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium"
-              >
-                <Mail className="h-4 w-4" />
-                Send Email
-              </a>
-            )}
-            {prospect["LINKEDIN LINK"] && (
-              <a
-                href={prospect["LINKEDIN LINK"]}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#0077b5] text-white hover:bg-[#006399] transition-colors font-medium"
-              >
-                <Linkedin className="h-4 w-4" />
-                View LinkedIn
-              </a>
-            )}
-          </div>
         </div>
       </DialogContent>
     </Dialog>
