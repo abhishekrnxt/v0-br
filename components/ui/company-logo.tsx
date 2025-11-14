@@ -85,7 +85,7 @@ export function CompanyLogo({
   const apiToken = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN || "pk_REPLACE_WITH_YOUR_TOKEN"
   logoUrl.searchParams.set("token", apiToken)
   logoUrl.searchParams.set("size", sizeConfig.img.toString())
-  logoUrl.searchParams.set("format", "webp") // WebP for better performance and smaller file size
+  logoUrl.searchParams.set("format", "png") // PNG for better quality with transparency
 
   // Add theme parameter if not auto
   if (theme !== "auto") {
@@ -125,8 +125,8 @@ export function CompanyLogo({
         style={{
           width: "100%",
           height: "100%",
-          padding: "10%",
-          transform: "scale(1.15)",
+          padding: "8%",
+          transform: "scale(1.5)",
         }}
       />
     </div>

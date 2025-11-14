@@ -5,13 +5,13 @@ This application now supports displaying company logos for accounts and centers 
 ## Features
 
 ✅ **Automatic logo fetching** - Displays company logos based on domain names
-✅ **WebP format** - Uses WebP format for optimal performance and smaller file sizes
+✅ **High-quality PNG format** - Uses PNG format for crisp, clear logos with transparency
 ✅ **Responsive sizing** - 4 size options (sm, md, lg, xl)
 ✅ **Smart fallbacks** - Shows building icon when logo is unavailable
 ✅ **Lazy loading** - Optimized for performance with lazy image loading
 ✅ **Theme support** - Automatic light/dark mode logo selection
 ✅ **Domain cleaning** - Automatically extracts clean domain from various URL formats
-✅ **Optimized scaling** - Logos scaled 1.15x to better fill circular containers
+✅ **Optimized scaling** - Logos scaled 1.5x to better fill circular containers
 ✅ **Table integration** - Logos appear in both detail dialogs and data table views
 
 ## Setup Instructions
@@ -92,8 +92,8 @@ The component automatically cleans domain URLs:
 - **Lazy loading**: Images load only when they enter the viewport
 - **Optimized sizes**: Requests appropriate image size based on display size
 - **Caching**: Browser caches logos for faster subsequent loads
-- **WebP format**: Uses WebP for 25-35% smaller file sizes compared to PNG
-- **Smart scaling**: Logos scaled 1.15x with 10% padding to optimally fill circular containers
+- **PNG format**: Uses PNG for crisp, high-quality logos with transparency support
+- **Smart scaling**: Logos scaled 1.5x with 8% padding to optimally fill circular containers
 
 ### Theme Support
 - `auto`: Logo.dev automatically detects and serves appropriate logo
@@ -107,7 +107,8 @@ The component automatically cleans domain URLs:
 - Uses `ACCOUNT WEBSITE` field for domain
 - Size: `md` (48px)
 - Theme: `auto`
-- Format: WebP
+- Format: PNG
+- Scale: 1.5x with 8% padding
 
 Location: `/components/dialogs/account-details-dialog.tsx:73-78`
 
@@ -116,7 +117,8 @@ Location: `/components/dialogs/account-details-dialog.tsx:73-78`
 - Uses `CENTER ACCOUNT WEBSITE` field for domain
 - Size: `md` (48px)
 - Theme: `auto`
-- Format: WebP
+- Format: PNG
+- Scale: 1.5x with 8% padding
 
 Location: `/components/dialogs/center-details-dialog.tsx:131-136`
 
@@ -125,7 +127,8 @@ Location: `/components/dialogs/center-details-dialog.tsx:131-136`
 - Uses `ACCOUNT WEBSITE` field for domain
 - Size: `sm` (32px)
 - Theme: `auto`
-- Format: WebP
+- Format: PNG
+- Scale: 1.5x with 8% padding
 
 Location: `/components/tables/account-row.tsx:23-28`
 
@@ -134,7 +137,8 @@ Location: `/components/tables/account-row.tsx:23-28`
 - Uses `CENTER ACCOUNT WEBSITE` field for domain
 - Size: `sm` (32px)
 - Theme: `auto`
-- Format: WebP
+- Format: PNG
+- Scale: 1.5x with 8% padding
 
 Location: `/components/tables/center-row.tsx:18-23`
 
