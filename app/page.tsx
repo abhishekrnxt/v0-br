@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useCallback, useMemo, useRef, useEffect } from "react"
+import React, { useState, useCallback, useMemo, useRef, useEffect, startTransition } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -132,6 +132,7 @@ function DashboardContent() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(50)
   const [isApplying, setIsApplying] = useState(false)
+  const isInitialMount = useRef(true)
   const [searchInput, setSearchInput] = useState("")
   const [accountsView, setAccountsView] = useState<"chart" | "data">("chart")
   const [centersView, setCentersView] = useState<"chart" | "data" | "map">("chart")
@@ -144,12 +145,21 @@ function DashboardContent() {
 
   // Auto-apply filters with debouncing for smooth performance
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setFilters(pendingFilters)
-      setIsApplying(false)
-    }, 300) // 300ms debounce for optimal responsiveness
+    // Skip auto-apply on initial mount to prevent freeze
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
 
     setIsApplying(true)
+
+    const timeoutId = setTimeout(() => {
+      // Use startTransition to mark this as a non-urgent update
+      startTransition(() => {
+        setFilters(pendingFilters)
+        setIsApplying(false)
+      })
+    }, 300) // 300ms debounce for optimal responsiveness
 
     return () => {
       clearTimeout(timeoutId)
@@ -948,10 +958,11 @@ function DashboardContent() {
 
   const applyFilters = useCallback(() => {
     setIsApplying(true)
-    setTimeout(() => {
+    // Use startTransition for non-blocking UI updates
+    startTransition(() => {
       setFilters(pendingFilters)
       setIsApplying(false)
-    }, 0)
+    })
   }, [pendingFilters])
 
   const resetFilters = () => {
