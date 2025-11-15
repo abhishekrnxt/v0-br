@@ -34,7 +34,7 @@ interface AccountsTabProps {
   itemsPerPage: number
 }
 
-export function AccountsTab({
+export const AccountsTab = React.memo(function AccountsTab({
   accounts,
   centers,
   prospects,
@@ -213,4 +213,4 @@ export function AccountsTab({
       />
     </TabsContent>
   )
-}
+})

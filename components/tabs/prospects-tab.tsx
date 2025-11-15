@@ -28,7 +28,7 @@ interface ProspectsTabProps {
   itemsPerPage: number
 }
 
-export function ProspectsTab({
+export const ProspectsTab = React.memo(function ProspectsTab({
   prospects,
   prospectChartData,
   prospectsView,
@@ -194,4 +194,4 @@ export function ProspectsTab({
       />
     </TabsContent>
   )
-}
+})

@@ -157,25 +157,23 @@ function DashboardContent() {
   }, [pendingFilters])
 
   // Debounced search handler - optimized for fast response
-  const debouncedSearch = useCallback(
+  const debouncedSearchRef = useRef(
     debounce((value: string) => {
       setPendingFilters((prev) => ({ ...prev, searchTerm: value }))
-    }, 150),
-    []
+    }, 150)
   )
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setSearchInput(value)
-    debouncedSearch(value)
+    debouncedSearchRef.current(value)
   }
 
   const checkDatabaseStatus = async () => {
     try {
       const status = await getDatabaseStatus()
       setDbStatus(status)
-      console.log("Database status:", status)
       return status
     } catch (err) {
       console.error("Failed to check database status:", err)
@@ -441,30 +439,7 @@ function DashboardContent() {
     functions,
     services,
     prospects,
-    filters.accountCountries,
-    filters.accountRegions,
-    filters.accountIndustries,
-    filters.accountSubIndustries,
-    filters.accountPrimaryCategories,
-    filters.accountPrimaryNatures,
-    filters.accountNasscomStatuses,
-    filters.accountEmployeesRanges,
-    filters.accountCenterEmployees,
-    filters.accountRevenueRange,
-    filters.includeNullRevenue,
-    filters.accountNameKeywords,
-    filters.centerTypes,
-    filters.centerFocus,
-    filters.centerCities,
-    filters.centerStates,
-    filters.centerCountries,
-    filters.centerEmployees,
-    filters.centerStatuses,
-    filters.functionTypes,
-    filters.prospectDepartments,
-    filters.prospectLevels,
-    filters.prospectCities,
-    filters.prospectTitleKeywords,
+    filters,
   ])
 
   // Calculate chart data for accounts
@@ -599,6 +574,71 @@ function DashboardContent() {
         prospectDepartments: [],
         prospectLevels: [],
         prospectCities: [],
+      }
+    }
+
+    // Fast path: if no filters are applied, skip expensive calculations
+    const hasFilters =
+      filters.accountCountries.length > 0 ||
+      filters.accountRegions.length > 0 ||
+      filters.accountIndustries.length > 0 ||
+      filters.accountSubIndustries.length > 0 ||
+      filters.accountPrimaryCategories.length > 0 ||
+      filters.accountPrimaryNatures.length > 0 ||
+      filters.accountNasscomStatuses.length > 0 ||
+      filters.accountEmployeesRanges.length > 0 ||
+      filters.accountCenterEmployees.length > 0 ||
+      filters.accountRevenueRange[0] !== revenueRange.min ||
+      filters.accountRevenueRange[1] !== revenueRange.max ||
+      filters.accountNameKeywords.length > 0 ||
+      filters.centerTypes.length > 0 ||
+      filters.centerFocus.length > 0 ||
+      filters.centerCities.length > 0 ||
+      filters.centerStates.length > 0 ||
+      filters.centerCountries.length > 0 ||
+      filters.centerEmployees.length > 0 ||
+      filters.centerStatuses.length > 0 ||
+      filters.functionTypes.length > 0 ||
+      filters.prospectDepartments.length > 0 ||
+      filters.prospectLevels.length > 0 ||
+      filters.prospectCities.length > 0 ||
+      filters.prospectTitleKeywords.length > 0 ||
+      filters.searchTerm.length > 0
+
+    if (!hasFilters) {
+      // No filters applied - return simple counts without complex matching
+      const simpleCounts = (items: any[], key: string) => {
+        const map = new Map<string, number>()
+        items.forEach(item => {
+          const value = item[key]
+          if (value) map.set(value, (map.get(value) || 0) + 1)
+        })
+        return Array.from(map.entries())
+          .map(([value, count]) => ({ value, count }))
+          .sort((a, b) => b.count - a.count)
+      }
+
+      return {
+        accountCountries: simpleCounts(accounts, "ACCOUNT COUNTRY"),
+        accountRegions: simpleCounts(accounts, "ACCOUNT REGION"),
+        accountIndustries: simpleCounts(accounts, "ACCOUNT INDUSTRY"),
+        accountSubIndustries: simpleCounts(accounts, "ACCOUNT SUB INDUSTRY"),
+        accountPrimaryCategories: simpleCounts(accounts, "ACCOUNT PRIMARY CATEGORY"),
+        accountPrimaryNatures: simpleCounts(accounts, "ACCOUNT PRIMARY NATURE"),
+        accountNasscomStatuses: simpleCounts(accounts, "ACCOUNT NASSCOM STATUS"),
+        accountEmployeesRanges: simpleCounts(accounts, "ACCOUNT EMPLOYEES RANGE"),
+        accountCenterEmployees: simpleCounts(accounts, "ACCOUNT CENTER EMPLOYEES"),
+        centerTypes: simpleCounts(centers, "CENTER TYPE"),
+        centerFocus: simpleCounts(centers, "CENTER FOCUS"),
+        centerCities: simpleCounts(centers, "CENTER CITY"),
+        centerStates: simpleCounts(centers, "CENTER STATE"),
+        centerCountries: simpleCounts(centers, "CENTER COUNTRY"),
+        centerEmployees: simpleCounts(centers, "CENTER EMPLOYEES RANGE"),
+        centerStatuses: simpleCounts(centers, "CENTER STATUS"),
+        functionTypes: simpleCounts(functions, "FUNCTION"),
+        prospectDepartments: simpleCounts(prospects, "DEPARTMENT"),
+        prospectLevels: simpleCounts(prospects, "LEVEL"),
+        prospectCities: simpleCounts(prospects, "CITY"),
       }
     }
 
@@ -978,9 +1018,43 @@ function DashboardContent() {
     )
   }
 
-  const hasUnappliedChanges = () => {
-    return JSON.stringify(filters) !== JSON.stringify(pendingFilters)
-  }
+  // Efficiently check if there are unapplied filter changes
+  const hasUnappliedChanges = useMemo(() => {
+    // Compare arrays by checking length and content
+    const arraysEqual = (a: FilterValue[], b: FilterValue[]) => {
+      if (a.length !== b.length) return false
+      return a.every((val, idx) => val.value === b[idx].value && val.isInclude === b[idx].isInclude)
+    }
+
+    return (
+      !arraysEqual(filters.accountCountries, pendingFilters.accountCountries) ||
+      !arraysEqual(filters.accountRegions, pendingFilters.accountRegions) ||
+      !arraysEqual(filters.accountIndustries, pendingFilters.accountIndustries) ||
+      !arraysEqual(filters.accountSubIndustries, pendingFilters.accountSubIndustries) ||
+      !arraysEqual(filters.accountPrimaryCategories, pendingFilters.accountPrimaryCategories) ||
+      !arraysEqual(filters.accountPrimaryNatures, pendingFilters.accountPrimaryNatures) ||
+      !arraysEqual(filters.accountNasscomStatuses, pendingFilters.accountNasscomStatuses) ||
+      !arraysEqual(filters.accountEmployeesRanges, pendingFilters.accountEmployeesRanges) ||
+      !arraysEqual(filters.accountCenterEmployees, pendingFilters.accountCenterEmployees) ||
+      filters.accountRevenueRange[0] !== pendingFilters.accountRevenueRange[0] ||
+      filters.accountRevenueRange[1] !== pendingFilters.accountRevenueRange[1] ||
+      filters.includeNullRevenue !== pendingFilters.includeNullRevenue ||
+      !arraysEqual(filters.accountNameKeywords, pendingFilters.accountNameKeywords) ||
+      !arraysEqual(filters.centerTypes, pendingFilters.centerTypes) ||
+      !arraysEqual(filters.centerFocus, pendingFilters.centerFocus) ||
+      !arraysEqual(filters.centerCities, pendingFilters.centerCities) ||
+      !arraysEqual(filters.centerStates, pendingFilters.centerStates) ||
+      !arraysEqual(filters.centerCountries, pendingFilters.centerCountries) ||
+      !arraysEqual(filters.centerEmployees, pendingFilters.centerEmployees) ||
+      !arraysEqual(filters.centerStatuses, pendingFilters.centerStatuses) ||
+      !arraysEqual(filters.functionTypes, pendingFilters.functionTypes) ||
+      !arraysEqual(filters.prospectDepartments, pendingFilters.prospectDepartments) ||
+      !arraysEqual(filters.prospectLevels, pendingFilters.prospectLevels) ||
+      !arraysEqual(filters.prospectCities, pendingFilters.prospectCities) ||
+      !arraysEqual(filters.prospectTitleKeywords, pendingFilters.prospectTitleKeywords) ||
+      filters.searchTerm !== pendingFilters.searchTerm
+    )
+  }, [filters, pendingFilters])
 
   const getTotalActiveFilters = () => {
     return (

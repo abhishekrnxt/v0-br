@@ -47,7 +47,7 @@ interface FiltersSidebarProps {
   formatRevenueInMillions: (value: number) => string
 }
 
-export function FiltersSidebar({
+export const FiltersSidebar = React.memo(function FiltersSidebar({
   filters,
   pendingFilters,
   availableOptions,
@@ -483,7 +483,7 @@ export function FiltersSidebar({
       )}
     </div>
   )
-}
+})
 
 // Title Keyword Input Component with include/exclude support
 function TitleKeywordInput({

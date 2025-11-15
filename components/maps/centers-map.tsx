@@ -23,15 +23,11 @@ export function CentersMap({ centers }: CentersMapProps) {
 
   useEffect(() => {
     setIsClient(true)
-    console.log("[CentersMap] Component mounted")
-    console.log("[CentersMap] Centers count:", centers?.length)
-    console.log("[CentersMap] Mapbox token exists:", !!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN)
   }, [centers])
 
   // Aggregate centers by city and calculate cluster data
   const cityData = useMemo(() => {
     try {
-      console.log("[CentersMap] Calculating city data...")
       const cityMap = new Map<string, CityCluster>()
 
       centers.forEach((center) => {
@@ -61,7 +57,6 @@ export function CentersMap({ centers }: CentersMapProps) {
       })
 
       const result = Array.from(cityMap.values())
-      console.log("[CentersMap] City data calculated:", result.length, "cities")
       return result
     } catch (err) {
       console.error("[CentersMap] Error calculating city data:", err)
@@ -158,7 +153,6 @@ export function CentersMap({ centers }: CentersMapProps) {
   }
 
   if (cityData.length === 0) {
-    console.warn("[CentersMap] No city data with coordinates")
     return (
       <div className="flex items-center justify-center h-[600px] bg-muted rounded-lg">
         <div className="text-center">
@@ -170,8 +164,6 @@ export function CentersMap({ centers }: CentersMapProps) {
       </div>
     )
   }
-
-  console.log("[CentersMap] Rendering map with", cityData.length, "cities")
 
   try {
     return (

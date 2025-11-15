@@ -91,7 +91,7 @@ const SavedFilterCard = memo(({
   onDelete: (filter: SavedFilter) => void
 }) => {
   // Memoize filter count calculation
-  const filterCount = useCallback(() => {
+  const filterCount = useMemo(() => {
     const filters = filter.filters
     return (
       filters.accountCountries.length +
@@ -121,7 +121,7 @@ const SavedFilterCard = memo(({
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">{filter.name}</CardTitle>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">{filterCount()} filters</Badge>
+            <Badge variant="secondary">{filterCount} filters</Badge>
             <Button
               variant="ghost"
               size="sm"

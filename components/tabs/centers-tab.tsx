@@ -34,7 +34,7 @@ interface CentersTabProps {
   itemsPerPage: number
 }
 
-export function CentersTab({
+export const CentersTab = React.memo(function CentersTab({
   centers,
   services,
   centerChartData,
@@ -227,4 +227,4 @@ export function CentersTab({
       />
     </TabsContent>
   )
-}
+})
