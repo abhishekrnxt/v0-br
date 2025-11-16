@@ -88,7 +88,7 @@ export function FiltersSidebar({
 
       {/* Collapsed State */}
       {isCollapsed && (
-        <div className="flex flex-col items-center pt-16 space-y-4">
+        <div className="flex flex-col items-center pt-14 space-y-4">
           <div className="flex flex-col items-center gap-2">
             <Filter className="h-5 w-5 text-muted-foreground" />
             {getTotalActiveFilters() > 0 && (
@@ -102,7 +102,7 @@ export function FiltersSidebar({
 
       {/* Expanded State */}
       {!isCollapsed && (
-        <div className="p-4 space-y-4 pt-16">
+        <div className="p-4 space-y-4 pt-14">
         {/* Filter Actions */}
         <div className="flex flex-col gap-2 mb-4 pb-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
