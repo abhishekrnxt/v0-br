@@ -1,13 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, X, Plus, Minus } from "lucide-react"
+import { ChevronsUpDown, X, Plus, Minus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
 import type { FilterValue } from "@/lib/types"
 
 interface EnhancedMultiSelectProps {
@@ -111,24 +110,7 @@ const EnhancedSelectItem = React.memo(({
           : "bg-red-500/10 hover:bg-red-500/20")
       )}
     >
-      <div className="flex items-center space-x-2 flex-1">
-        <Checkbox
-          checked={isSelected}
-          disabled={disabled}
-          className={cn(
-            "h-4 w-4",
-            isSelected && (isInclude
-              ? "border-green-500 data-[state=checked]:bg-green-500"
-              : "border-red-500 data-[state=checked]:bg-red-500")
-          )}
-        />
-        <Check
-          className={cn(
-            "h-4 w-4",
-            isSelected ? "opacity-100" : "opacity-0",
-            isInclude ? "text-green-600" : "text-red-600"
-          )}
-        />
+      <div className="flex items-center justify-between flex-1">
         <span className="flex-1">{value}</span>
         {count !== undefined && (
           <span className="text-xs text-muted-foreground ml-2 font-medium">
