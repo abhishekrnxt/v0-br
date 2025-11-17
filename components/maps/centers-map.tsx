@@ -28,30 +28,7 @@ export function CentersMap({ centers }: CentersMapProps) {
     console.log("[CentersMap] Mapbox token exists:", !!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN)
   }, [centers])
 
-  // 1) background: individual points for every center
-  const centersGeojson = useMemo(() => {
-    return {
-      type: "FeatureCollection" as const,
-      features:
-        centers?.flatMap((center) => {
-          const lat = center.LAT ? parseFloat(center.LAT) : null
-          const lng = center.LANG ? parseFloat(center.LANG) : null
-          if (!lat || !lng || isNaN(lat) || isNaN(lng)) return []
-          return [
-            {
-              type: "Feature" as const,
-              properties: {},
-              geometry: {
-                type: "Point" as const,
-                coordinates: [lng, lat],
-              },
-            },
-          ]
-        }) ?? [],
-    }
-  }, [centers])
-
-  // 2) clusters by city (unchanged)
+  // Aggregate centers by city and calculate cluster data
   const cityData = useMemo(() => {
     try {
       console.log("[CentersMap] Calculating city data...")
@@ -62,13 +39,24 @@ export function CentersMap({ centers }: CentersMapProps) {
         const lat = center.LAT ? parseFloat(center.LAT) : null
         const lng = center.LANG ? parseFloat(center.LANG) : null
 
-        if (!city || !lat || !lng || isNaN(lat) || isNaN(lng)) return
+        // Skip if no coordinates
+        if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+          return
+        }
 
         if (cityMap.has(city)) {
           const existing = cityMap.get(city)!
-          cityMap.set(city, { ...existing, count: existing.count + 1 })
+          cityMap.set(city, {
+            ...existing,
+            count: existing.count + 1,
+          })
         } else {
-          cityMap.set(city, { city, lat, lng, count: 1 })
+          cityMap.set(city, {
+            city,
+            lat,
+            lng,
+            count: 1,
+          })
         }
       })
 
@@ -82,17 +70,28 @@ export function CentersMap({ centers }: CentersMapProps) {
     }
   }, [centers])
 
+  // Calculate center of all points for initial view
   const initialViewState = useMemo(() => {
     if (cityData.length === 0) {
-      return { latitude: 20.5937, longitude: 78.9629, zoom: 4 }
+      return {
+        latitude: 20.5937,
+        longitude: 78.9629,
+        zoom: 4,
+      }
     }
 
     const avgLat = cityData.reduce((sum, city) => sum + city.lat, 0) / cityData.length
     const avgLng = cityData.reduce((sum, city) => sum + city.lng, 0) / cityData.length
 
-    return { latitude: avgLat, longitude: avgLng, zoom: 4 }
+    return {
+      latitude: avgLat,
+      longitude: avgLng,
+      zoom: 4,
+    }
   }, [cityData])
 
+  // Convert city data to GeoJSON
+  // Sort by count descending so larger circles render first (at bottom)
   const geojsonData = useMemo(() => {
     const sortedCities = [...cityData].sort((a, b) => b.count - a.count)
     return {
@@ -111,27 +110,14 @@ export function CentersMap({ centers }: CentersMapProps) {
     }
   }, [cityData])
 
-  const maxCount = useMemo(
-    () => Math.max(...cityData.map((city) => city.count), 1),
-    [cityData]
-  )
-
-  // shared radius expression
-  const circleRadiusExpression = useMemo(
-    () => [
-      "interpolate",
-      ["linear"],
-      ["get", "count"],
-      1,
-      4,
-      maxCount,
-      15,
-    ] as const,
-    [maxCount]
-  )
+  // Get max count for scaling circles
+  const maxCount = useMemo(() => {
+    return Math.max(...cityData.map((city) => city.count), 1)
+  }, [cityData])
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
 
+  // Show error if any
   if (error) {
     return (
       <div className="flex items-center justify-center h-[600px] bg-muted rounded-lg">
@@ -144,10 +130,13 @@ export function CentersMap({ centers }: CentersMapProps) {
     )
   }
 
+  // Wait for client-side rendering
   if (!isClient) {
     return (
       <div className="flex items-center justify-center h-[600px] bg-muted rounded-lg">
-        <p className="text-sm text-muted-foreground">Loading map...</p>
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground">Loading map...</p>
+        </div>
       </div>
     )
   }
@@ -188,86 +177,113 @@ export function CentersMap({ centers }: CentersMapProps) {
     return (
       <div className="relative w-full h-[600px] rounded-lg overflow-hidden border">
         <MapGL
-          initialViewState={initialViewState}
-          mapStyle="mapbox://styles/abhishekfx/cltyaz9ek00nx01p783ygdi9z"
-          mapboxAccessToken={mapboxToken}
-          projection="mercator"
-          interactiveLayerIds={["centers-circles"]}
-          onMouseMove={(e) => {
-            const features = e.features
-            if (features && features.length > 0) {
-              const city = features[0].properties?.city
-              setHoveredCity(city)
-            } else {
-              setHoveredCity(null)
-            }
-          }}
-          onMouseLeave={() => setHoveredCity(null)}
-          onError={(e) => {
-            console.error("[CentersMap] Map error:", e)
-            setError(`Map error: ${e.error?.message || "Unknown error"}`)
-          }}
-        >
-          <NavigationControl position="top-left" showCompass showZoom />
-          <FullscreenControl position="top-left" />
+        initialViewState={initialViewState}
+        mapStyle="mapbox://styles/abhishekfx/cltyaz9ek00nx01p783ygdi9z"
+        mapboxAccessToken={mapboxToken}
+        projection="mercator"
+        interactiveLayerIds={["centers-circles"]}
+        onMouseMove={(e) => {
+          const features = e.features
+          if (features && features.length > 0) {
+            const city = features[0].properties?.city
+            setHoveredCity(city)
+          } else {
+            setHoveredCity(null)
+          }
+        }}
+        onMouseLeave={() => setHoveredCity(null)}
+        onError={(e) => {
+          console.error("[CentersMap] Map error:", e)
+          setError(`Map error: ${e.error?.message || "Unknown error"}`)
+        }}
+      >
+        {/* Navigation Controls - Zoom and Rotation */}
+        <NavigationControl position="top-left" showCompass={true} showZoom={true} />
 
-          {/* tiny dots for every center */}
-          <Source id="centers-dots" type="geojson" data={centersGeojson}>
-            <Layer
-              id="centers-dots-layer"
-              type="circle"
-              paint={{
-                "circle-radius": 2,
-                "circle-color": "#f97316", // or keep your blue if you prefer
-                "circle-opacity": 0.35,
-              }}
-            />
-          </Source>
+        {/* Fullscreen Control */}
+        <FullscreenControl position="top-left" />
 
-          {/* clustered circles per city */}
-          <Source id="centers" type="geojson" data={geojsonData}>
-            {/* halo circle 20 percent bigger and more transparent */}
-            <Layer
-              id="centers-halo"
-              type="circle"
-              paint={{
-                "circle-radius": ["*", circleRadiusExpression, 1.2],
-                "circle-color": "#f97316",
-                "circle-opacity": 0.2,
-              }}
-            />
+        <Source id="centers" type="geojson" data={geojsonData}>
+          {/* Outer halo layer - larger and more transparent (20% bigger) */}
+          <Layer
+            id="centers-halo"
+            type="circle"
+            paint={{
+              "circle-radius": [
+                "interpolate",
+                ["linear"],
+                ["get", "count"],
+                1,
+                7.2, // 20% bigger than inner (6 * 1.2)
+                maxCount,
+                30, // 20% bigger than inner (25 * 1.2)
+              ],
+              "circle-color": [
+                "interpolate",
+                ["linear"],
+                ["get", "count"],
+                1,
+                "#f97316", // Orange color matching your Tableau screenshot
+                maxCount / 2,
+                "#ea580c",
+                maxCount,
+                "#c2410c",
+              ],
+              "circle-opacity": 0.15, // Very transparent halo
+              "circle-blur": 0.5, // Soft edges
+            }}
+          />
+          
+          {/* Inner circle layer - smaller and more visible */}
+          <Layer
+            id="centers-circles"
+            type="circle"
+            paint={{
+              "circle-radius": [
+                "interpolate",
+                ["linear"],
+                ["get", "count"],
+                1,
+                6, // Smaller base size
+                maxCount,
+                25, // Smaller max size
+              ],
+              "circle-color": [
+                "interpolate",
+                ["linear"],
+                ["get", "count"],
+                1,
+                "#fb923c", // Lighter orange for small clusters
+                maxCount / 2,
+                "#f97316", // Medium orange
+                maxCount,
+                "#ea580c", // Darker orange for large clusters
+              ],
+              "circle-opacity": 0.6, // Semi-transparent
+              "circle-stroke-width": 1,
+              "circle-stroke-color": "#ffffff",
+              "circle-stroke-opacity": 0.5,
+            }}
+          />
+        </Source>
 
-            {/* main city circle */}
-            <Layer
-              id="centers-circles"
-              type="circle"
-              paint={{
-                "circle-radius": circleRadiusExpression,
-                "circle-color": "#f97316",
-                "circle-opacity": 0.7,
-                "circle-stroke-width": 2,
-                "circle-stroke-color": "#ffffff",
-              }}
-            />
-          </Source>
-
-          {/* tooltip */}
-          {hoveredCity && (
-            <div
-              className="absolute top-4 left-4 bg-background border rounded-lg shadow-lg px-4 py-3 z-10"
-              style={{ pointerEvents: "none" }}
-            >
-              <div className="space-y-1">
-                <p className="font-semibold text-sm">{hoveredCity}</p>
-                <p className="text-sm text-muted-foreground">
-                  {cityData.find((c) => c.city === hoveredCity)?.count || 0} center
-                  {(cityData.find((c) => c.city === hoveredCity)?.count || 0) !== 1 ? "s" : ""}
-                </p>
-              </div>
+        {/* Tooltip */}
+        {hoveredCity && (
+          <div
+            className="absolute top-4 left-4 bg-background border rounded-lg shadow-lg px-4 py-3 z-10"
+            style={{ pointerEvents: "none" }}
+          >
+            <div className="space-y-1">
+              <p className="font-semibold text-sm">{hoveredCity}</p>
+              <p className="text-sm text-muted-foreground">
+                {cityData.find((c) => c.city === hoveredCity)?.count || 0} center
+                {(cityData.find((c) => c.city === hoveredCity)?.count || 0) !== 1 ? "s" : ""}
+              </p>
             </div>
-          )}
-        </MapGL>
-      </div>
+          </div>
+        )}
+      </MapGL>
+    </div>
     )
   } catch (err) {
     console.error("[CentersMap] Render error:", err)
