@@ -483,9 +483,10 @@ export function FiltersSidebar({
               </div>
             </AccordionContent>
           </AccordionItem>
-        </Accordion>
+      </Accordion>
         </div>
       )}
+      </div>
     </div>
   )
 }
@@ -583,7 +584,6 @@ function TitleKeywordInput({
           })}
         </div>
       )}
-      </div>
     </div>
   )
 }
